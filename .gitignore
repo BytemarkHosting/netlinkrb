@@ -1,0 +1,9 @@
+*~
+*.orig
+*.gem
+*.sw?
+.irbrc
+.#*
+rdoc
+coverage
+tmp/*

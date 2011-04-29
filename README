@@ -1,0 +1,43 @@
+Ruby Netlink
+============
+
+This library provides an API for using a Linux Netlink socket, for doing
+things like manipulating IP interfaces, routes and firewall rules
+programmatically.
+
+Useful reference material
+=========================
+
+* http://www.linuxjournal.com/article/7356
+* http://people.redhat.com/nhorman/papers/netlink.pdf
+* apt-get source iproute
+
+Note there are some errors in the nhorman paper. On page 8/9, it says
+
+    nlmsg_pid ... Also note that it is
+    imperative that any program receiving netlink socket messages from
+    the kernel verify that this ﬁeld is set to zero, or it is possible to expose
+    the software to unexpected inﬂuences from other non-privlidged user
+    space programs.
+
+However, what really needs to be checked is the pid in the sockaddr_nl
+structure returned by recvmsg msghdr, as shown by this code in
+lib/libnetlink.c:
+
+        struct msghdr msg = {
+                .msg_name = &nladdr,
+                .msg_namelen = sizeof(nladdr),
+                .msg_iov = &iov,
+                .msg_iovlen = 1,
+        };
+...
+                status = recvmsg(rth->fd, &msg, 0);
+...
+                                if (nladdr.nl_pid != 0 ||
+                                    h->nlmsg_pid != rth->local.nl_pid ||
+                                    h->nlmsg_seq != rth->dump) {
+
+Copyright
+=========
+
+Copyright (C) 2011 Bytemark Computer Consulting Ltd
