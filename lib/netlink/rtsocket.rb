@@ -47,7 +47,10 @@ end
 if __FILE__ == $0
   require 'pp'
   nl = Netlink::RTSocket.new
+  puts "*** routes ***"
   pp nl.route_list(:family => Socket::AF_INET)
+  puts "*** links ***"
   pp nl.link_list(:family => Socket::AF_INET)
+  puts "*** addrs ***"
   pp nl.addr_list(:family => Socket::AF_INET)
 end

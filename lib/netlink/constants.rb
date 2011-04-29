@@ -1,6 +1,6 @@
 require 'socket'
 class Socket
-  # From /usr/include/bits/socket.h
+  # From bits/socket.h
   PF_NETLINK		= 16		unless defined? Socket::PF_NETLINK
   AF_NETLINK		= PF_NETLINK	unless defined? Socket::AF_NETLINK
 end
@@ -145,5 +145,57 @@ module Netlink
   RTPROT_BOOT		= 3
   RTPROT_STATIC		= 4
   
-  # MORE TO GO
+  # XXXX MORE TO GO
+
+  RTA_UNSPEC		= 0
+  RTA_DST		= 1
+  RTA_SRC		= 2
+  RTA_IIF		= 3
+  RTA_OIF		= 4
+  RTA_GATEWAY		= 5
+  RTA_PRIORITY		= 6
+  RTA_PREFSRC		= 7
+  RTA_METRICS		= 8
+  RTA_MULTIPATH		= 9
+  RTA_FLOW		= 11
+  RTA_CACHEINFO		= 12
+  RTA_TABLE		= 15
+  
+  # from linux/if_link.h
+  IFLA_UNSPEC		= 0
+  IFLA_ADDRESS		= 1
+  IFLA_BROADCAST	= 2
+  IFLA_IFNAME		= 3
+  IFLA_MTU		= 4
+  IFLA_LINK		= 5
+  IFLA_QDISC		= 6
+  IFLA_STATS		= 7
+  IFLA_COST		= 8
+  IFLA_PRIORITY		= 9
+  IFLA_MASTER		= 10
+  IFLA_WIRELESS		= 11
+  IFLA_PROTINFO		= 12
+  IFLA_TXQLEN		= 13
+  IFLA_MAP		= 14
+  IFLA_WEIGHT		= 15
+  IFLA_OPERSTATE	= 16
+  IFLA_LINKMODE		= 17
+  IFLA_LINKINFO		= 18
+  IFLA_NET_NS_PID	= 19
+  IFLA_IFALIAS		= 20
+  IFLA_NUM_VF		= 21
+  IFLA_VFINFO_LIST	= 22
+  IFLA_STATS64		= 23
+  IFLA_VF_PORTS		= 24
+  IFLA_PORT_SELF	= 25
+
+  # from linux/if_addr.h
+  IFA_UNSPEC		= 0
+  IFA_ADDRESS		= 1
+  IFA_LOCAL		= 2
+  IFA_LABEL		= 3
+  IFA_BROADCAST		= 4
+  IFA_ANYCAST		= 5
+  IFA_CACHEINFO		= 6
+  IFA_MULTICAST		= 7
 end

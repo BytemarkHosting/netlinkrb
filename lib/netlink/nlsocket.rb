@@ -7,7 +7,6 @@ module Netlink
     DEFAULT_TIMEOUT = 2
 
     SOCKADDR_PACK = "SSLL".freeze #:nodoc:
-    SOCKADDR_SIZE = 12 # :nodoc:
 
     # Generate a sockaddr_nl. Pass :pid and/or :groups.
     def self.sockaddr(opt={})
@@ -71,7 +70,7 @@ module Netlink
     end
 
     NLMSGHDR_PACK = "LSSLL".freeze  # :nodoc:
-    NLMSGHDR_SIZE = 16 # :nodoc:
+    NLMSGHDR_SIZE = [0,0,0,0,0].pack(NLMSGHDR_PACK).bytesize # :nodoc:
 
     # Build a message comprising header+body. It is not padded at the end.
     def build_message(type, body, flags=NLM_F_REQUEST, seq=(@seq += 1), pid=@pid)
@@ -164,6 +163,7 @@ module Netlink
         len, type, flags, seq, pid = mesg[ptr,NLMSGHDR_SIZE].unpack(NLMSGHDR_PACK)
         STDERR.puts "  len=#{len}, type=#{type}, flags=#{flags}, seq=#{seq}, pid=#{pid}" if $DEBUG
         raise "Truncated netlink message!" if ptr + len > mesg.bytesize
+        raise "Invalid netlink len!" if len < NLMSGHDR_SIZE
         data = mesg[ptr+NLMSGHDR_SIZE, len-NLMSGHDR_SIZE]
         STDERR.puts "  data=#{data.inspect}" if $DEBUG && !data.empty?
         yield type, flags, seq, pid, data
