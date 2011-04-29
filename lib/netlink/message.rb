@@ -23,6 +23,9 @@ module Netlink
     # Map of numeric message type code => message class
     CODE_TO_MESSAGE = {}
 
+    METRIC_PACK = "SSL".freeze #:nodoc:
+    METRIC_SIZE = [0,0,0].pack(METRIC_PACK).bytesize #:nodoc:
+
     # Defines each of the possible field types
     TYPE_INFO = {
       :uchar	=> { :pattern => "C" },
@@ -54,6 +57,16 @@ module Netlink
       :ifa_cacheinfo => {
         :pack => lambda { |val| val.to_a.pack("L*") },
         :unpack => lambda { |str| IFACacheInfo.new(*(str.unpack("L*"))) },
+      },
+      :metrics => {
+        :pack => lambda { |pairs|
+          pairs.map { |code,val| [METRIC_SIZE,code,val].pack(METRIC_PACK) }.join
+        },
+        :unpack => lambda { |str|
+          res = {}  # in kernel the dst.metrics structure is array of u32
+          RtattrMessage.unpack_rtattr(str) { |code,val| res[code] = val.unpack("L").first }
+          res
+        },
       },
       :l3addr => {
         :pack => lambda { |val| val.hton },
@@ -204,33 +217,35 @@ module Netlink
     
     def self.parse(data)
       res = super
-      ptr = attr_offset
+      attrs = res.to_hash
+      unpack_rtattr(data, attr_offset) do |code, val|
+        name, info = self::RTATTRS[code]
+        if name
+          if !info
+            # skip
+          elsif unpack = info[:unpack]
+            val = unpack[val]
+          elsif pattern = info[:pattern]
+            val = val.unpack(pattern).first
+          end
+          warn "Duplicate attribute #{name} (#{code}): #{attrs[name].inspect} -> #{val.inspect}" if attrs[name]
+          attrs[name] = val
+        else
+          warn "Unknown attribute #{code}, value #{val.inspect}"
+          attrs[code] = val
+        end
+      end
+      res
+    end
+
+    def self.unpack_rtattr(data, ptr=0)  #:nodoc:
       while ptr < data.bytesize
         raise "Truncated rtattr header!" if ptr + RTATTR_SIZE > data.bytesize
         len, code = data[ptr, RTATTR_SIZE].unpack(RTATTR_PACK)
         raise "Truncated rtattr body!" if ptr + len > data.bytesize
         raise "Invalid rtattr len!" if len < RTATTR_SIZE
-        res._add_attr(code, data[ptr+RTATTR_SIZE, len-RTATTR_SIZE])
+        yield code, data[ptr+RTATTR_SIZE, len-RTATTR_SIZE]
         ptr = Message.align(ptr + len)
-      end
-      res
-    end
-    
-    def _add_attr(code, val) # :nodoc:
-      name, info = self.class::RTATTRS[code]
-      if name
-        if !info
-          # skip
-        elsif unpack = info[:unpack]
-          val = unpack[val]
-        elsif pattern = info[:pattern]
-          val = val.unpack(pattern).first
-        end
-        warn "Duplicate attribute #{name} (#{code}): #{@attrs[name].inspect} -> #{val.inspect}" if @attrs[name]
-        @attrs[name] = val
-      else
-        warn "Unknown attribute #{code}, value #{val.inspect}"
-        @attrs[code] = val
       end
     end
   end
@@ -303,7 +318,7 @@ module Netlink
     rtattr :gateway, RTA_GATEWAY, :l3addr
     rtattr :priority, RTA_PRIORITY, :uint32
     rtattr :prefsrc, RTA_PREFSRC, :l3addr
-    rtattr :metrics, RTA_METRICS
+    rtattr :metrics, RTA_METRICS, :metrics
     rtattr :multipath, RTA_MULTIPATH
     rtattr :flow, RTA_FLOW
     rtattr :cacheinfo, RTA_CACHEINFO, :rta_cacheinfo
