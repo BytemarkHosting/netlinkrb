@@ -60,12 +60,12 @@ module Netlink
     #   msg = Foo.new(:bar => 123)  # or ("bar" => 123)
     #   msg2 = Foo.new(msg)
     #   msg3 = Foo.new(:qux => 999) # error, no method "qux="
-    def initialize(h={})
+    def initialize(h=nil)
       if h.instance_of?(self.class)
         @attrs = h.to_hash.dup
       else
         @attrs = self.class::DEFAULTS.dup
-        h.each { |k,v| self[k] = v }
+        h.each { |k,v| self[k] = v } if h
       end
     end
     

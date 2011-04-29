@@ -109,14 +109,15 @@ module Netlink
     # are accepted.
     #
     # (Compare: rtnl_dump_filter_l in lib/libnetlink.c)
-    def receive_until_done(timeout=@timeout, junk_handler=nil, &blk) #:yields: type, flags, obj
+    def receive_until_done(expect_type=nil, timeout=@timeout, junk_handler=nil, &blk) #:yields: type, flags, obj
       res = []
       blk ||= lambda { |type, flags, obj| res << obj if obj }
-      junk_handler ||= lambda { |obj| warn "Discarding junk message #{obj}" } if $VERBOSE
+      junk_handler ||= lambda { |type, flags, seq, pid, obj|
+        warn "Discarding junk message (#{type}) #{obj}" } if $VERBOSE
       loop do
         receive_response(timeout) do |type, flags, seq, pid, obj|
           if pid != @pid || seq != @seq
-            junk_handler[obj] if junk_handler
+            junk_handler[type, flags, seq, pid, obj] if junk_handler
             next
           end
           case type
@@ -124,6 +125,10 @@ module Netlink
             return res
           when NLMSG_ERROR
             raise "Netlink Error received"
+          end
+          if expect_type && type != expect_type
+            junk_handler[type, flags, seq, pid, obj] if junk_handler
+            next
           end
           blk.call(type, flags, obj)
         end
