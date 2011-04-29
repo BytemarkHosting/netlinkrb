@@ -17,6 +17,7 @@ module Netlink
 
   RTACacheInfo = Struct.new :clntref, :lastuse, :expires, :error, :used, :id, :ts, :tsage
   IFACacheInfo = Struct.new :prefered, :valid, :cstamp, :tstamp
+  LinkIFMap = Struct.new :mem_start, :mem_end, :base_addr, :irq, :dma, :port
 
   # Base class for Netlink messages
   class Message
@@ -26,6 +27,8 @@ module Netlink
     METRIC_PACK = "SSL".freeze #:nodoc:
     METRIC_SIZE = [0,0,0].pack(METRIC_PACK).bytesize #:nodoc:
 
+    IFMAP_PACK = "QQQSCC".freeze #:nodoc:
+    
     # Defines each of the possible field types
     TYPE_INFO = {
       :uchar	=> { :pattern => "C" },
@@ -58,6 +61,10 @@ module Netlink
         :pack => lambda { |val| val.to_a.pack("L*") },
         :unpack => lambda { |str| IFACacheInfo.new(*(str.unpack("L*"))) },
       },
+      :ifmap => {
+        :pack => lambda { |val| val.to_a.pack(IFMAP_PACK) },
+        :unpack => lambda { |str| LinkIFMap.new(*(str.unpack(IFMAP_PACK))) },
+      },
       :metrics => {
         :pack => lambda { |pairs|
           pairs.map { |code,val| [METRIC_SIZE,code,val].pack(METRIC_PACK) }.join
@@ -67,6 +74,10 @@ module Netlink
           RtattrMessage.unpack_rtattr(str) { |code,val| res[code] = val.unpack("L").first }
           res
         },
+      },
+      :l2addr => {
+        :pack => lambda { |val| Array(val).pack("H*") },
+        :unpack => lambda { |val| val.unpack("H*").first },
       },
       :l3addr => {
         :pack => lambda { |val| val.hton },
@@ -258,25 +269,25 @@ module Netlink
     field :index, :int
     field :flags, :uint				# IFF_*
     field :change, :uint, :default=>0xffffffff
-    rtattr :address, IFLA_ADDRESS
-    rtattr :broadcast, IFLA_BROADCAST
+    rtattr :address, IFLA_ADDRESS, :l2addr
+    rtattr :broadcast, IFLA_BROADCAST, :l2addr
     rtattr :ifname, IFLA_IFNAME, :cstring
     rtattr :mtu, IFLA_MTU, :uint32
     rtattr :link, IFLA_LINK, :int32
     rtattr :qdisc, IFLA_QDISC, :cstring
     rtattr :stats, IFLA_STATS, :stats32
     rtattr :cost, IFLA_COST
-    rtattr :master, IFLA_MASTER
+    rtattr :master, IFLA_MASTER, :uint32
     rtattr :wireless, IFLA_WIRELESS
-    rtattr :protinfo, IFLA_PROTINFO
+    rtattr :protinfo, IFLA_PROTINFO, :uchar
     rtattr :txqlen, IFLA_TXQLEN, :uint32
-    rtattr :map, IFLA_MAP
-    rtattr :weight, IFLA_WEIGHT
+    rtattr :map, IFLA_MAP, :ifmap
+    rtattr :weight, IFLA_WEIGHT, :uint32
     rtattr :operstate, IFLA_OPERSTATE, :uchar
     rtattr :linkmode, IFLA_LINKMODE, :uchar
-    rtattr :linkinfo, IFLA_LINKINFO
-    rtattr :net_ns_pid, IFLA_NET_NS_PID
-    rtattr :ifalias, IFLA_IFALIAS
+    rtattr :linkinfo, IFLA_LINKINFO # nested
+    rtattr :net_ns_pid, IFLA_NET_NS_PID, :uint32
+    rtattr :ifalias, IFLA_IFALIAS, :cstring
     rtattr :num_vf, IFLA_NUM_VF, :uint32
     rtattr :vfinfo_list, IFLA_VFINFO_LIST
     rtattr :stats64, IFLA_STATS64, :stats64
