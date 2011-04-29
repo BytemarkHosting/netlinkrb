@@ -1,6 +1,20 @@
 require 'netlink/constants'
+require 'ipaddr'
 
 module Netlink
+  LinkStats = Struct.new :rx_packets, :tx_packets,
+  	:rx_bytes, :tx_bytes,
+  	:rx_errors, :tx_errors,
+  	:rx_dropped, :tx_dropped,
+  	:multicast, :collisions,
+  	:rx_length_errors, :rx_over_errors,
+  	:rx_crc_errors, :rx_frame_errors,
+  	:rx_fifo_errors, :rx_missed_errors,
+  	:tx_aborted_errorsr, :tx_carrier_errors,
+  	:tx_fifo_errors, :tx_heartbeat_errors,
+  	:tx_window_errors,
+  	:rx_compressed, :tx_compressed
+
   # Base class for Netlink messages
   class Message
     # Map of numeric message type code => message class
@@ -20,10 +34,20 @@ module Netlink
       :short	=> { :pattern => "s_" },
       :int	=> { :pattern => "i" },
       :long	=> { :pattern => "l_" },
-      :binary	=> { :pattern => "a*", :default => "" },
-      :cstring	=> { :pattern => "Z*", :default => "" },
-      :stats32	=> { :pattern => "L*", :default => [] },
-      :stats64	=> { :pattern => "Q*", :default => [] },
+      :binary	=> { :pattern => "a*", :default => "".freeze },
+      :cstring	=> { :pattern => "Z*", :default => "".freeze },
+      :stats32	=> {
+        :pack => lambda { |val| val.to_a.pack("L23") },
+        :unpack => lambda { |str| LinkStats.new(*(str.unpack("L23"))) },
+      },
+      :stats64	=> {
+        :pack => lambda { |val| val.to_a.pack("Q23") },
+        :unpack => lambda { |str| LinkStats.new(*(str.unpack("Q23"))) },
+      },
+      :l3addr => {
+        :pack => lambda { |val| val.hton },
+        :unpack => lambda { |val| IPAddr.new_ntoh(val) },
+      },
     }
 
     # You can initialize a message from a Hash or from another
@@ -138,7 +162,7 @@ module Netlink
 
     def self.rtattr(name, code, type=nil, opt={})
       info = TYPE_INFO[type]
-      self::RTATTRS[code] = [name, info && info[:pattern]]
+      self::RTATTRS[code] = [name, info]
       define_method name do
         @attrs.fetch name
       end
@@ -153,10 +177,14 @@ module Netlink
     
     def to_s
       data = super
-      self.class::RTATTRS.each do |code, (name, pattern)|
+      self.class::RTATTRS.each do |code, (name, info)|
         if val = @attrs[name]
           Message.pad(data)
-          val = Array(val).pack(pattern) if pattern
+          if pack = info[:pack]
+            val = pack[val]
+          elsif pattern = info[:pattern]
+            val = Array(val).pack(pattern)
+          end
           data << [val.bytesize+RTATTR_SIZE, code].pack(RTATTR_PACK) << val
         end
       end
@@ -178,11 +206,14 @@ module Netlink
     end
     
     def _add_attr(code, val) # :nodoc:
-      name, pattern = self.class::RTATTRS[code]
+      name, info = self.class::RTATTRS[code]
       if name
-        if pattern
-          val = val.unpack(pattern)
-          val = val.first if val.size == 1
+        if !info
+          # skip
+        elsif unpack = info[:unpack]
+          val = unpack[val]
+        elsif pattern = info[:pattern]
+          val = val.unpack(pattern).first
         end
         warn "Duplicate attribute #{name} (#{code}): #{@attrs[name].inspect} -> #{val.inspect}" if @attrs[name]
         @attrs[name] = val
@@ -234,13 +265,13 @@ module Netlink
     field :flags, :uchar
     field :scope, :uchar
     field :index, :int
-    rtattr :address, IFA_ADDRESS
-    rtattr :local, IFA_LOCAL
+    rtattr :address, IFA_ADDRESS, :l3addr
+    rtattr :local, IFA_LOCAL, :l3addr
     rtattr :label, IFA_LABEL, :cstring
-    rtattr :broadcast, IFA_BROADCAST
-    rtattr :anycase, IFA_ANYCAST
+    rtattr :broadcast, IFA_BROADCAST, :l3addr
+    rtattr :anycast, IFA_ANYCAST, :l3addr
     rtattr :cacheinfo, IFA_CACHEINFO
-    rtattr :multicast, IFA_MULTICAST
+    rtattr :multicast, IFA_MULTICAST, :l3addr
   end
 
   class Route < RtattrMessage
@@ -254,13 +285,13 @@ module Netlink
     field :scope, :uchar
     field :type, :uchar
     field :flags, :uint
-    rtattr :dst, RTA_DST
-    rtattr :src, RTA_SRC
+    rtattr :dst, RTA_DST, :l3addr
+    rtattr :src, RTA_SRC, :l3addr
     rtattr :iif, RTA_IIF, :uint32
     rtattr :oif, RTA_OIF, :uint32
-    rtattr :gateway, RTA_GATEWAY
+    rtattr :gateway, RTA_GATEWAY, :l3addr
     rtattr :priority, RTA_PRIORITY, :uint32
-    rtattr :prefsrc, RTA_PREFSRC
+    rtattr :prefsrc, RTA_PREFSRC, :l3addr
     rtattr :metrics, RTA_METRICS
     rtattr :multipath, RTA_MULTIPATH
     rtattr :flow, RTA_FLOW
