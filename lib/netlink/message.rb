@@ -164,7 +164,7 @@ module Netlink
       info = TYPE_INFO[type]
       self::RTATTRS[code] = [name, info]
       define_method name do
-        @attrs.fetch name
+        @attrs[name]   # rtattrs are optional, non-existent returns nil
       end
       define_method "#{name}=" do |val|
         @attrs.store name, val
