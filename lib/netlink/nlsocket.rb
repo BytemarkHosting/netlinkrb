@@ -109,9 +109,9 @@ module Netlink
     # are accepted.
     #
     # (Compare: rtnl_dump_filter_l in lib/libnetlink.c)
-    def receive_until_done(expect_type=nil, timeout=@timeout, junk_handler=nil, &blk) #:yields: type, flags, obj
+    def receive_until_done(expect_type=nil, timeout=@timeout, junk_handler=nil, &blk) #:yields: obj
       res = []
-      blk ||= lambda { |type, flags, obj| res << obj if obj }
+      blk ||= lambda { |obj| res << obj }
       junk_handler ||= lambda { |type, flags, seq, pid, obj|
         warn "Discarding junk message (#{type}) #{obj}" } if $VERBOSE
       loop do
@@ -130,7 +130,7 @@ module Netlink
             junk_handler[type, flags, seq, pid, obj] if junk_handler
             next
           end
-          blk.call(type, flags, obj)
+          blk.call(obj) if obj
         end
       end
     end
