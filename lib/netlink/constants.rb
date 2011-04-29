@@ -64,10 +64,6 @@ module Netlink
   NLA_ALIGNTO			= 4
   
   # from linux/rtnetlink.h.
-  # Should we put each of these groups under separate namespace?
-  #   Netlink::Message::GETROUTE
-  #   Netlink::Route::Type::UNICAST
-  #   Netlink::Route::Protocol::STATIC
   RTM_NEWLINK		= 16
   RTM_DELLINK		= 17
   RTM_GETLINK		= 18
@@ -123,7 +119,6 @@ module Netlink
   RTM_SETDCB		= 79
 
   # Route#type
-  
   RTN_UNSPEC		= 0
   RTN_UNICAST		= 1
   RTN_LOCAL		= 2
@@ -138,15 +133,42 @@ module Netlink
   RTN_XRESOLVE		= 11
   
   # Route#protocol
-  
   RTPROT_UNSPEC		= 0
   RTPROT_REDIRECT	= 1
   RTPROT_KERNEL		= 2
   RTPROT_BOOT		= 3
   RTPROT_STATIC		= 4
+  RTPROT_GATED		= 8
+  RTPROT_RA		= 9
+  RTPROT_MRT		= 10
+  RTPROT_ZEBRA		= 11
+  RTPROT_BIRD		= 12
+  RTPROT_DNROUTED	= 13
+  RTPROT_XORP		= 14
+  RTPROT_NTK		= 15
+  RTPROT_DHCP		= 16
   
-  # XXXX MORE TO GO
+  # Route#scope, Addr#scope
+  RT_SCOPE_UNIVERSE	= 0
+  RT_SCOPE_SITE		= 200
+  RT_SCOPE_LINK		= 253
+  RT_SCOPE_HOST		= 254
+  RT_SCOPE_NOWHERE	= 255
 
+  # Route#flags
+  RTM_F_NOTIFY		= 0x100
+  RTM_F_CLONED		= 0x200
+  RTM_F_EQUALIZE	= 0x400
+  RTM_F_PREFIX		= 0x800
+
+  # Route#table (reserved values)
+  RT_TABLE_UNSPEC	= 0
+  RT_TABLE_COMPAT	= 252
+  RT_TABLE_DEFAULT	= 253
+  RT_TABLE_MAIN		= 254
+  RT_TABLE_LOCAL	= 255
+  
+  # routing message attributes
   RTA_UNSPEC		= 0
   RTA_DST		= 1
   RTA_SRC		= 2
@@ -198,4 +220,56 @@ module Netlink
   IFA_ANYCAST		= 5
   IFA_CACHEINFO		= 6
   IFA_MULTICAST		= 7
+
+  IFA_F_SECONDARY	= 0x01
+  IFA_F_TEMPORARY	= IFA_F_SECONDARY
+  IFA_F_NODAD		= 0x02
+  IFA_F_OPTIMISTIC	= 0x04
+  IFA_F_DADFAILED	= 0x08
+  IFA_F_HOMEADDRESS	= 0x10
+  IFA_F_DEPRECATED	= 0x20
+  IFA_F_TENTATIVE	= 0x40
+  IFA_F_PERMANENT	= 0x80
+
+  # from linux/if_arp.h
+  ARPHRD_NETROM		= 0
+  ARPHRD_ETHER		= 1
+  ARPHRD_EETHER		= 2
+  ARPHRD_AX25		= 3
+  ARPHRD_PRONET		= 4
+  ARPHRD_CHAOS		= 5
+  ARPHRD_IEEE802	= 6
+  ARPHRD_ARCNET		= 7
+  ARPHRD_APPLETLK	= 8
+  ARPHRD_DLCI		= 15
+  ARPHRD_ATM		= 19
+  ARPHRD_METRICOM	= 23
+  ARPHRD_IEEE1394	= 24
+  ARPHRD_EUI64		= 27
+  ARPHRD_INFINIBAND	= 32
+  ARPHRD_LOOPBACK	= 772
+  # ... others to be added as required
+
+  # linux/if.h
+  IFF_UP		= 0x1
+  IFF_BROADCAST		= 0x2
+  IFF_DEBUG		= 0x4
+  IFF_LOOPBACK		= 0x8
+  IFF_POINTOPOINT	= 0x10
+  IFF_NOTRAILERS	= 0x20
+  IFF_RUNNING		= 0x40
+  IFF_NOARP		= 0x80
+  IFF_PROMISC		= 0x100
+  IFF_ALLMULTI		= 0x200
+  IFF_MASTER		= 0x400
+  IFF_SLAVE		= 0x800
+  IFF_MULTICAST		= 0x1000
+  IFF_PORTSEL		= 0x2000
+  IFF_AUTOMEDIA		= 0x4000
+  IFF_DYNAMIC		= 0x8000
+  IFF_LOWER_UP		= 0x10000
+  IFF_DORMANT		= 0x20000
+  IFF_ECHO		= 0x40000
+  IFF_VOLATILE		= (IFF_LOOPBACK|IFF_POINTOPOINT|IFF_BROADCAST|IFF_ECHO|\
+			IFF_MASTER|IFF_SLAVE|IFF_RUNNING|IFF_LOWER_UP|IFF_DORMANT)
 end

@@ -226,12 +226,12 @@ module Netlink
 
   class Link < RtattrMessage
     code RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK
-    field :family, :uchar
+    field :family, :uchar			# Socket::AF_*
     field :pad, :uchar
-    field :type, :ushort
+    field :type, :ushort			# ARPHRD_*
     field :index, :int
-    field :flags, :uint
-    field :change, :uint
+    field :flags, :uint				# IFF_*
+    field :change, :uint, :default=>0xffffffff
     rtattr :address, IFLA_ADDRESS
     rtattr :broadcast, IFLA_BROADCAST
     rtattr :ifname, IFLA_IFNAME, :cstring
@@ -260,10 +260,10 @@ module Netlink
 
   class Addr < RtattrMessage
     code RTM_NEWADDR, RTM_DELADDR, RTM_GETADDR
-    field :family, :uchar
+    field :family, :uchar			# Socket::AF_*
     field :prefixlen, :uchar
-    field :flags, :uchar
-    field :scope, :uchar
+    field :flags, :uchar			# IFA_F_*
+    field :scope, :uchar			# RT_SCOPE_*
     field :index, :int
     rtattr :address, IFA_ADDRESS, :l3addr
     rtattr :local, IFA_LOCAL, :l3addr
@@ -276,15 +276,15 @@ module Netlink
 
   class Route < RtattrMessage
     code RTM_NEWROUTE, RTM_DELROUTE, RTM_GETROUTE
-    field :family, :uchar
+    field :family, :uchar			# Socket::AF_*
     field :dst_len, :uchar
     field :src_len, :uchar
     field :tos, :uchar
-    field :table, :uchar
-    field :protocol, :uchar
-    field :scope, :uchar
-    field :type, :uchar
-    field :flags, :uint
+    field :table, :uchar			# table id or RT_TABLE_*
+    field :protocol, :uchar			# RTPROT_*
+    field :scope, :uchar			# RT_SCOPE_*
+    field :type, :uchar				# RTN_*
+    field :flags, :uint				# RTM_F_*
     rtattr :dst, RTA_DST, :l3addr
     rtattr :src, RTA_SRC, :l3addr
     rtattr :iif, RTA_IIF, :uint32

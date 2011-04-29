@@ -93,8 +93,10 @@ if __FILE__ == $0
   addrs = nl.addrs_by_index(:family=>Socket::AF_UNSPEC)
   routes = nl.routes_by_oif(:family=>Socket::AF_UNSPEC)
   links.each do |link|
+    #p link
     puts "#{link.ifname}"
     addrs[link.index].each do |addr|
+      #p addr
       puts "  family=#{addr.family} #{addr.address}/#{addr.prefixlen} label=#{addr.label}"
     end
     routes[link.index].each do |route|
