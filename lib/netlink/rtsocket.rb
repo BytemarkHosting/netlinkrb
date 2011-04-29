@@ -93,14 +93,14 @@ if __FILE__ == $0
   addrs = nl.addrs_by_index(:family=>Socket::AF_UNSPEC)
   routes = nl.routes_by_oif(:family=>Socket::AF_UNSPEC)
   links.each do |link|
-    #p link
+    p link if $VERBOSE
     puts "#{link.ifname}"
     addrs[link.index].each do |addr|
-      #p addr
+      p addr if $VERBOSE
       puts "  family=#{addr.family} #{addr.address}/#{addr.prefixlen} label=#{addr.label}"
     end
     routes[link.index].each do |route|
-      #p route
+      p route if $VERBOSE
       puts "  >> family=#{route.family} #{route.dst}/#{route.dst_len} gw=#{route.gateway}"
     end
   end

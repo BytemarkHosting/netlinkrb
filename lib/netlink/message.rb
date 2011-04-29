@@ -15,6 +15,9 @@ module Netlink
   	:tx_window_errors,
   	:rx_compressed, :tx_compressed
 
+  RTACacheInfo = Struct.new :clntref, :lastuse, :expires, :error, :used, :id, :ts, :tsage
+  IFACacheInfo = Struct.new :prefered, :valid, :cstamp, :tstamp
+
   # Base class for Netlink messages
   class Message
     # Map of numeric message type code => message class
@@ -43,6 +46,14 @@ module Netlink
       :stats64	=> {
         :pack => lambda { |val| val.to_a.pack("Q23") },
         :unpack => lambda { |str| LinkStats.new(*(str.unpack("Q23"))) },
+      },
+      :rta_cacheinfo => {
+        :pack => lambda { |val| val.to_a.pack("L*") },
+        :unpack => lambda { |str| RTACacheInfo.new(*(str.unpack("L*"))) },
+      },
+      :ifa_cacheinfo => {
+        :pack => lambda { |val| val.to_a.pack("L*") },
+        :unpack => lambda { |str| IFACacheInfo.new(*(str.unpack("L*"))) },
       },
       :l3addr => {
         :pack => lambda { |val| val.hton },
@@ -270,7 +281,7 @@ module Netlink
     rtattr :label, IFA_LABEL, :cstring
     rtattr :broadcast, IFA_BROADCAST, :l3addr
     rtattr :anycast, IFA_ANYCAST, :l3addr
-    rtattr :cacheinfo, IFA_CACHEINFO
+    rtattr :cacheinfo, IFA_CACHEINFO, :ifa_cacheinfo
     rtattr :multicast, IFA_MULTICAST, :l3addr
   end
 
@@ -295,7 +306,7 @@ module Netlink
     rtattr :metrics, RTA_METRICS
     rtattr :multipath, RTA_MULTIPATH
     rtattr :flow, RTA_FLOW
-    rtattr :cacheinfo, RTA_CACHEINFO
+    rtattr :cacheinfo, RTA_CACHEINFO, :rta_cacheinfo
     rtattr :table2, RTA_TABLE, :uint32   # NOTE: table in two places!
   end
 end
