@@ -18,29 +18,12 @@ module Netlink
   	:tx_window_errors,
   	:rx_compressed, :tx_compressed
 
-  # struct rta_cacheinfo
-  RTACacheInfo = Struct.new :clntref, :lastuse, :expires, :error, :used, :id, :ts, :tsage
-  # struct ifa_cacheinfo
-  IFACacheInfo = Struct.new :prefered, :valid, :cstamp, :tstamp
   # struct ifmap
   IFMap = Struct.new :mem_start, :mem_end, :base_addr, :irq, :dma, :port
 
   # struct ifinfomsg
   class Link < RtattrMessage
     code RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK
-
-    IFMAP_PACK = "QQQSCC".freeze #:nodoc:
-    define_type :ifmap,
-        :pack   => lambda { |val,obj| val.to_a.pack(IFMAP_PACK) },
-        :unpack => lambda { |str,obj| IFMap.new(*(str.unpack(IFMAP_PACK))) }
-
-    define_type :linkstats32,
-        :pack   => lambda { |val,obj| val.to_a.pack("L23") },
-        :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("L23"))) }
-
-    define_type :linkstats64,
-        :pack   => lambda { |val,obj| val.to_a.pack("Q23") },
-        :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("Q23"))) }
 
     field :family, :uchar			# Socket::AF_*
     field :pad, :uchar
@@ -54,13 +37,18 @@ module Netlink
     rtattr :mtu, IFLA_MTU, :uint32
     rtattr :link, IFLA_LINK, :int32
     rtattr :qdisc, IFLA_QDISC, :cstring
-    rtattr :stats32, IFLA_STATS, :linkstats32
+    rtattr :stats32, IFLA_STATS,
+        :pack   => lambda { |val,obj| val.to_a.pack("L23") },
+        :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("L23"))) }
     rtattr :cost, IFLA_COST
     rtattr :master, IFLA_MASTER, :uint32
     rtattr :wireless, IFLA_WIRELESS
     rtattr :protinfo, IFLA_PROTINFO, :uchar
     rtattr :txqlen, IFLA_TXQLEN, :uint32
-    rtattr :map, IFLA_MAP, :ifmap
+    IFMAP_PACK = "QQQSCC".freeze #:nodoc:
+    rtattr :map, IFLA_MAP,
+        :pack   => lambda { |val,obj| val.to_a.pack(IFMAP_PACK) },
+        :unpack => lambda { |str,obj| IFMap.new(*(str.unpack(IFMAP_PACK))) }
     rtattr :weight, IFLA_WEIGHT, :uint32
     rtattr :operstate, IFLA_OPERSTATE, :uchar
     rtattr :linkmode, IFLA_LINKMODE, :uchar
@@ -69,7 +57,9 @@ module Netlink
     rtattr :ifalias, IFLA_IFALIAS, :cstring
     rtattr :num_vf, IFLA_NUM_VF, :uint32
     rtattr :vfinfo_list, IFLA_VFINFO_LIST
-    rtattr :stats64, IFLA_STATS64, :linkstats64
+    rtattr :stats64, IFLA_STATS64,
+        :pack   => lambda { |val,obj| val.to_a.pack("Q23") },
+        :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("Q23"))) }
     rtattr :vf_ports, IFLA_VF_PORTS
     rtattr :port_self, IFLA_PORT_SELF
     
@@ -79,13 +69,12 @@ module Netlink
     end
   end
 
+  # struct ifa_cacheinfo
+  IFACacheInfo = Struct.new :prefered, :valid, :cstamp, :tstamp
+
   # struct ifaddrmsg
   class Addr < RtattrMessage
     code RTM_NEWADDR, RTM_DELADDR, RTM_GETADDR
-
-    define_type :ifa_cacheinfo,
-        :pack   => lambda { |val,obj| val.to_a.pack("L*") },
-        :unpack => lambda { |str,obj| IFACacheInfo.new(*(str.unpack("L*"))) }
 
     field :family, :uchar			# Socket::AF_*
     field :prefixlen, :uchar
@@ -97,31 +86,18 @@ module Netlink
     rtattr :label, IFA_LABEL, :cstring
     rtattr :broadcast, IFA_BROADCAST, :l3addr
     rtattr :anycast, IFA_ANYCAST, :l3addr
-    rtattr :cacheinfo, IFA_CACHEINFO, :ifa_cacheinfo
+    rtattr :cacheinfo, IFA_CACHEINFO,
+        :pack   => lambda { |val,obj| val.to_a.pack("L*") },
+        :unpack => lambda { |str,obj| IFACacheInfo.new(*(str.unpack("L*"))) }
     rtattr :multicast, IFA_MULTICAST, :l3addr
   end
+
+  # struct rta_cacheinfo
+  RTACacheInfo = Struct.new :clntref, :lastuse, :expires, :error, :used, :id, :ts, :tsage
 
   # struct rtmsg
   class Route < RtattrMessage
     code RTM_NEWROUTE, RTM_DELROUTE, RTM_GETROUTE
-
-    define_type :rta_cacheinfo,
-        :pack   => lambda { |val,obj| val.to_a.pack("L*") },
-        :unpack => lambda { |str,obj| RTACacheInfo.new(*(str.unpack("L*"))) }
-
-    # Route metrics are themselves packed using the rtattr format.
-    # In the kernel, the dst.metrics structure is an array of u32.
-    METRIC_PACK = "SSL".freeze #:nodoc:
-    METRIC_SIZE = [0,0,0].pack(METRIC_PACK).bytesize #:nodoc:
-    define_type :rtmetrics,
-        :pack   => lambda { |metrics,obj|
-          metrics.map { |code,val| [METRIC_SIZE,code,val].pack(METRIC_PACK) }.join
-        },
-        :unpack => lambda { |str,obj|
-          res = {}  # in kernel the dst.metrics structure is array of u32
-          RtattrMessage.unpack_rtattr(str) { |code,val| res[code] = val.unpack("L").first }
-          res
-        }
 
     field :family, :uchar			# Socket::AF_*
     field :dst_len, :uchar
@@ -139,10 +115,24 @@ module Netlink
     rtattr :gateway, RTA_GATEWAY, :l3addr
     rtattr :priority, RTA_PRIORITY, :uint32
     rtattr :prefsrc, RTA_PREFSRC, :l3addr
-    rtattr :metrics, RTA_METRICS, :rtmetrics
+    # Route metrics are themselves packed using the rtattr format.
+    # In the kernel, the dst.metrics structure is an array of u32.
+    METRIC_PACK = "SSL".freeze #:nodoc:
+    METRIC_SIZE = [0,0,0].pack(METRIC_PACK).bytesize #:nodoc:
+    rtattr :metrics, RTA_METRICS,		# {RTAX_* => Integer}
+        :pack   => lambda { |metrics,obj|
+          metrics.map { |code,val| [METRIC_SIZE,code,val].pack(METRIC_PACK) }.join
+        },
+        :unpack => lambda { |str,obj|
+          res = {}
+          RtattrMessage.unpack_rtattr(str) { |code,val| res[code] = val.unpack("L").first }
+          res
+        }
     rtattr :multipath, RTA_MULTIPATH
     rtattr :flow, RTA_FLOW
-    rtattr :cacheinfo, RTA_CACHEINFO, :rta_cacheinfo
+    rtattr :cacheinfo, RTA_CACHEINFO,
+        :pack   => lambda { |val,obj| val.to_a.pack("L*") },
+        :unpack => lambda { |str,obj| RTACacheInfo.new(*(str.unpack("L*"))) }
     rtattr :table2, RTA_TABLE, :uint32   # NOTE: table in two places!
   end
 

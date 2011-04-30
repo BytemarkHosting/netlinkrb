@@ -38,6 +38,16 @@ module Netlink
     def self.define_type(name, opt)
       TYPE_INFO[name] = opt
     end
+    
+    # Return a type info hash given a type id. Raises IndexError if not found.
+    def self.find_type(type)
+      case type
+      when nil, Hash
+        type
+      else
+        TYPE_INFO.fetch(type)
+      end
+    end
         
     define_type :uchar,   :pattern => "C"
     define_type :uint16,  :pattern => "S"
@@ -52,6 +62,7 @@ module Netlink
     define_type :int,     :pattern => "i"
     define_type :long,    :pattern => "l_"
     define_type :binary,  :pattern => "a*", :default => EMPTY_STRING
+    # cstring has \x00 terminator when sent over wire
     define_type :cstring, :pattern => "Z*", :default => EMPTY_STRING
 
     # L2 addresses are presented as ASCII hex. You may optionally include
@@ -158,7 +169,7 @@ module Netlink
     #    field :foo, :uchar
     #    field :foo, :uchar, :default=>0xff    # use this default value
     def self.field(name, type, opt={})
-      info = TYPE_INFO[type]
+      info = find_type(type)
       self::FIELDS << name
       self::FORMAT << info[:pattern]
       self::DEFAULTS[name] = opt.fetch(:default) { info.fetch(:default, 0) }
@@ -223,8 +234,8 @@ module Netlink
     # type (if not provided, it will just be returned as a raw binary string)
     #    rtattr :foo, 12
     #    rtattr :foo, 12, :uint
-    def self.rtattr(name, code, type=nil, opt={})
-      info = TYPE_INFO[type]
+    def self.rtattr(name, code, type=nil)
+      info = find_type(type)
       self::RTATTRS[code] = [name, info]
       define_method name do
         @attrs[name]   # rtattrs are optional, non-existent returns nil
