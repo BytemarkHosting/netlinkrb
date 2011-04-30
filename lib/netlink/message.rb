@@ -299,7 +299,7 @@ module Netlink
     rtattr :mtu, IFLA_MTU, :uint32
     rtattr :link, IFLA_LINK, :int32
     rtattr :qdisc, IFLA_QDISC, :cstring
-    rtattr :stats, IFLA_STATS, :stats32
+    rtattr :stats32, IFLA_STATS, :stats32
     rtattr :cost, IFLA_COST
     rtattr :master, IFLA_MASTER, :uint32
     rtattr :wireless, IFLA_WIRELESS
@@ -317,6 +317,11 @@ module Netlink
     rtattr :stats64, IFLA_STATS64, :stats64
     rtattr :vf_ports, IFLA_VF_PORTS
     rtattr :port_self, IFLA_PORT_SELF
+    
+    # Return the best stats available (64bit or 32bit)
+    def stats
+      stats64 || stats32
+    end
   end
 
   class Addr < RtattrMessage
