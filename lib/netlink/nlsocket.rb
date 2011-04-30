@@ -3,8 +3,11 @@ require 'netlink/constants'
 require 'netlink/message'
 
 module Netlink
+  # NLSocket provides low-level sending and receiving of messages across
+  # a netlink socket, adding headers to sent messages and parsing
+  # received messages.
   class NLSocket
-    DEFAULT_TIMEOUT = 2
+    DEFAULT_TIMEOUT = 5
 
     SOCKADDR_PACK = "SSLL".freeze #:nodoc:
 
@@ -18,28 +21,23 @@ module Netlink
 
     # Check the sockaddr on a received message. Raises an error if the AF
     # is not AF_NETLINK or the PID is not 0 (this is important for security)
-    def self.parse_sockaddr(str)
+    def self.check_sockaddr(str)
       af, pad, pid, groups = str.unpack(SOCKADDR_PACK)
       raise "Bad AF #{af}!" if af != Socket::AF_NETLINK
       raise "Bad PID #{pid}!" if pid != 0
     end
 
-    attr_accessor :socket
-    attr_accessor :seq
-    attr_accessor :pid
+    attr_accessor :socket	# the underlying Socket
+    attr_accessor :seq		# the last sequence number used
+    attr_accessor :pid		# default pid to include in message headers
+    attr_accessor :timeout	# default timeout when receiving message
 
     # Create a new Netlink socket. Pass in chosen protocol:
     #   :protocol => Netlink::NETLINK_ARPD
     #   :protocol => Netlink::NETLINK_FIREWALL
-    #   :protocol => Netlink::NETLINK_IP6_FW
-    #   :protocol => Netlink::NETLINK_NFLOG
     #   :protocol => Netlink::NETLINK_ROUTE
-    #   :protocol => Netlink::NETLINK_ROUTE6
-    #   :protocol => Netlink::NETLINK_TAPBASE
-    #   :protocol => Netlink::NETLINK_TCPDIAG
-    #   :protocol => Netlink::NETLINK_XFRM
-    # Other options:
-    #   :groups => N (subscribe to multicastgroups, default to 0)
+    # etc. Other options:
+    #   :groups => N (subscribe to multicast groups, default to 0)
     #   :seq => N (override initial sequence number)
     #   :pid => N (override PID)
     #   :timeout => N (seconds, default to DEFAULT_TIMEOUT. Pass nil for no timeout)
@@ -55,16 +53,25 @@ module Netlink
       @timeout = opt.has_key?(:timeout) ? opt[:timeout] : DEFAULT_TIMEOUT
     end
 
-    # Send a Netlink::Message object over the socket
-    #   obj:: the object to send (responds to #to_s)
+    # Generate the next sequence number
+    def next_seq
+      @seq = (@seq + 1) & 0xffffffff
+    end
+    
+    # Add a header and send a single message over the socket.
+    #   type:: the message type code
+    #   msg:: the message to send (without header)
     #   flags:: message header flags, default NLM_F_REQUEST
     #   sockaddr:: destination sockaddr, defaults to pid=0 and groups=0
     #   seq:: sequence number, defaults to bump internal sequence
     #   pid:: pid, defaults to $$
     #   vflags:: sendmsg flags, defaults to 0
-    def send_request(type, obj, flags=NLM_F_REQUEST, sockaddr=SOCKADDR_DEFAULT, seq=(@seq += 1), pid=@pid, vflags=0, controls=[])
+    # Normally 'msg' would be an instance of a Netlink::Message subclass,
+    # although in fact any object which respond to #to_s will do (if you
+    # want to pack the message body yourself).
+    def send_request(type, msg, flags=NLM_F_REQUEST, sockaddr=SOCKADDR_DEFAULT, seq=next_seq, pid=@pid, vflags=0, controls=[])
       @socket.sendmsg(
-        build_message(type, obj, flags, seq, pid),
+        build_message(type, msg, flags, seq, pid),
         vflags, sockaddr, *controls
       )
     end
@@ -73,7 +80,7 @@ module Netlink
     NLMSGHDR_SIZE = [0,0,0,0,0].pack(NLMSGHDR_PACK).bytesize # :nodoc:
 
     # Build a message comprising header+body. It is not padded at the end.
-    def build_message(type, body, flags=NLM_F_REQUEST, seq=(@seq += 1), pid=@pid)
+    def build_message(type, body, flags=NLM_F_REQUEST, seq=next_seq, pid=@pid)
       body = body.to_s
       header = [
         body.bytesize + NLMSGHDR_SIZE,
@@ -86,38 +93,44 @@ module Netlink
     # Send multiple Netlink::Message objects in a single message. They
     # need to share the same type and flags, and will be sent with sequential
     # sequence nos.
-    def send_requests(type, objs, flags=NLM_F_REQUEST, pid=@pid)
-      objs.each_with_index do |obj, index|
-        if index < objs.size - 1
-          data << build_message(type, obj, flags|NLM_F_MULTI, @seq+=1, pid)
+    def send_requests(type, msgs, flags=NLM_F_REQUEST, pid=@pid)
+      msgs.each_with_index do |msg, index|
+        if index < msgs.size - 1
+          data << build_message(type, msg, flags|NLM_F_MULTI, next_seq, pid)
           Message.pad(data)
         else
-          data << build_message(type, obj, flags, @seq+=1, pid)
+          data << build_message(type, msg, flags, next_seq, pid)
         end
       end
     end
 
     # Discard all waiting messages
-    def flush
+    def drain
       while select([@socket], nil, nil, 0)
-        @socket.recvmsg
+        mesg, sender, rflags, controls = @socket.recvmsg
+        raise EOFError unless mesg
       end
     end
 
-    # Loop receiving responses until Netlink::Message::Done, and yielding
-    # the objects found. Also filters so that only expected pid and seq
-    # are accepted.
+    # Loop receiving responses until a DONE message is received (or you
+    # break out of the loop, or a timeout exception occurs). Filters out
+    # messages with unexpected pid and seq. If you pass an expected_type then
+    # messages other than this type will be discarded too.
+    #
+    # Yields Netlink::Message objects, or if no block is given, returns an
+    # array of those objects. If you provide a junk_handler then it will be
+    # called for discarded messages.
     #
     # (Compare: rtnl_dump_filter_l in lib/libnetlink.c)
-    def receive_until_done(expect_type=nil, timeout=@timeout, junk_handler=nil, &blk) #:yields: obj
+    def receive_until_done(expected_type=nil, timeout=@timeout, junk_handler=nil, &blk) #:yields: msg
       res = []
-      blk ||= lambda { |obj| res << obj }
-      junk_handler ||= lambda { |type, flags, seq, pid, obj|
-        warn "Discarding junk message (#{type}) #{obj}" } if $VERBOSE
+      blk ||= lambda { |msg| res << msg }
+      junk_handler ||= lambda { |type, flags, seq, pid, msg|
+        warn "Discarding junk message (#{type}) #{msg}" } if $VERBOSE
       loop do
-        receive_response(timeout) do |type, flags, seq, pid, obj|
+        receive_response(timeout) do |type, flags, seq, pid, msg|
           if pid != @pid || seq != @seq
-            junk_handler[type, flags, seq, pid, obj] if junk_handler
+            junk_handler[type, flags, seq, pid, msg] if junk_handler
             next
           end
           case type
@@ -126,41 +139,44 @@ module Netlink
           when NLMSG_ERROR
             raise "Netlink Error received"
           end
-          if expect_type && type != expect_type
-            junk_handler[type, flags, seq, pid, obj] if junk_handler
+          if expected_type && type != expected_type
+            junk_handler[type, flags, seq, pid, msg] if junk_handler
             next
           end
-          blk.call(obj) if obj
+          blk.call(msg) if msg
         end
       end
     end
     
-    # Receive one datagram from kernel. If a block is given, then yield
+    # Receive one datagram from kernel. Yield header fields plus
     # Netlink::Message objects (maybe multiple times if the datagram
-    # includes multiple netlink messages).
+    # includes multiple netlink messages). Raise an exception if no
+    # datagram received within the specified or default timeout period;
+    # pass nil for infinite timeout.
     #
-    #   receive_response { |msg| p msg }
+    #   receive_response { |type, flags, seq, pid, msg| p msg }
     def receive_response(timeout=@timeout, &blk) # :yields: type, flags, seq, pid, Message
       if select([@socket], nil, nil, timeout)
         mesg, sender, rflags, controls = @socket.recvmsg
         raise EOFError unless mesg
-        NLSocket.parse_sockaddr(sender.to_sockaddr)
+        NLSocket.check_sockaddr(sender.to_sockaddr)
         parse_yield(mesg, &blk)
       else
         raise "Timeout"
       end
     end
 
-    # Parse message(s) in a string buffer and yield message object, flags,
-    # seq and pid
-    def parse_yield(mesg) # :yields: type, flags, seq, pid, Message
+    # Parse netlink packet in a string buffer. Yield header fields plus
+    # a Netlink::Message object (or nil) for each message.
+    def parse_yield(mesg) # :yields: type, flags, seq, pid, Message-or-nil
       dechunk(mesg) do |h_type, h_flags, h_seq, h_pid, data|
         klass = Message::CODE_TO_MESSAGE[h_type]
         yield h_type, h_flags, h_seq, h_pid, klass && klass.parse(data)
       end
     end  
 
-    # Take message(s) in a string buffer and yield fields in turn
+    # Parse netlink packet in a string buffer. Yield header and body
+    # components for each message in turn.
     def dechunk(mesg) # :yields: type, flags, seq, pid, data
       ptr = 0
       while ptr < mesg.bytesize

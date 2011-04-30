@@ -5,27 +5,6 @@ module Netlink
   EMPTY_STRING = "".freeze #:nodoc:
   EMPTY_ARRAY  = [].freeze #:nodoc:
 
-  # struct rtnl_link_stats / rtnl_link_stats64
-  LinkStats = Struct.new :rx_packets, :tx_packets,
-  	:rx_bytes, :tx_bytes,
-  	:rx_errors, :tx_errors,
-  	:rx_dropped, :tx_dropped,
-  	:multicast, :collisions,
-  	:rx_length_errors, :rx_over_errors,
-  	:rx_crc_errors, :rx_frame_errors,
-  	:rx_fifo_errors, :rx_missed_errors,
-  	:tx_aborted_errorsr, :tx_carrier_errors,
-  	:tx_fifo_errors, :tx_heartbeat_errors,
-  	:tx_window_errors,
-  	:rx_compressed, :tx_compressed
-
-  # struct rta_cacheinfo
-  RTACacheInfo = Struct.new :clntref, :lastuse, :expires, :error, :used, :id, :ts, :tsage
-  # struct ifa_cacheinfo
-  IFACacheInfo = Struct.new :prefered, :valid, :cstamp, :tstamp
-  # struct ifmap
-  IFMap = Struct.new :mem_start, :mem_end, :base_addr, :irq, :dma, :port
-
   # This is the base class from which all Netlink messages are derived.
   # To define a new Netlink message, make a subclass and then call the
   # "field" metaprogramming method to define the parts of the message, in
@@ -45,7 +24,7 @@ module Netlink
   #   msg2 = Foo.new(:qux => 999) # error: no method "qux="
   #   msg2 = Foo.new(msg)         # cloning an existing message
   #
-  # Use RtattrMessage for messages which are followed by variable rtattrs.
+  # Use RtattrMessage instead for messages which are followed by variable rtattrs.
   class Message
     TYPE_INFO = {} #:nodoc
     
@@ -74,39 +53,6 @@ module Netlink
     define_type :long,    :pattern => "l_"
     define_type :binary,  :pattern => "a*", :default => EMPTY_STRING
     define_type :cstring, :pattern => "Z*", :default => EMPTY_STRING
-
-    define_type :linkstats32,
-        :pack   => lambda { |val,obj| val.to_a.pack("L23") },
-        :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("L23"))) }
-
-    define_type :linkstats64,
-        :pack   => lambda { |val,obj| val.to_a.pack("Q23") },
-        :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("Q23"))) }
-
-    define_type :rta_cacheinfo,
-        :pack   => lambda { |val,obj| val.to_a.pack("L*") },
-        :unpack => lambda { |str,obj| RTACacheInfo.new(*(str.unpack("L*"))) }
-
-    define_type :ifa_cacheinfo,
-        :pack   => lambda { |val,obj| val.to_a.pack("L*") },
-        :unpack => lambda { |str,obj| IFACacheInfo.new(*(str.unpack("L*"))) }
-
-    IFMAP_PACK = "QQQSCC".freeze #:nodoc:
-    define_type :ifmap,
-        :pack   => lambda { |val,obj| val.to_a.pack(IFMAP_PACK) },
-        :unpack => lambda { |str,obj| IFMap.new(*(str.unpack(IFMAP_PACK))) }
-
-    METRIC_PACK = "SSL".freeze #:nodoc:
-    METRIC_SIZE = [0,0,0].pack(METRIC_PACK).bytesize #:nodoc:
-    define_type :metrics,
-        :pack   => lambda { |metrics,obj|
-          metrics.map { |code,val| [METRIC_SIZE,code,val].pack(METRIC_PACK) }.join
-        },
-        :unpack => lambda { |str,obj|
-          res = {}  # in kernel the dst.metrics structure is array of u32
-          RtattrMessage.unpack_rtattr(str) { |code,val| res[code] = val.unpack("L").first }
-          res
-        }
 
     # L2 addresses are presented as ASCII hex. You may optionally include
     # colons, hyphens or dots.
@@ -350,85 +296,5 @@ module Netlink
         ptr = Message.align(ptr + len) # assume NLMSG_ALIGNTO == NLA_ALIGNTO
       end
     end
-  end
-
-  class Link < RtattrMessage
-    code RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK
-    field :family, :uchar			# Socket::AF_*
-    field :pad, :uchar
-    field :type, :ushort			# ARPHRD_*
-    field :index, :int
-    field :flags, :uint				# IFF_*
-    field :change, :uint, :default=>0xffffffff
-    rtattr :address, IFLA_ADDRESS, :l2addr
-    rtattr :broadcast, IFLA_BROADCAST, :l2addr
-    rtattr :ifname, IFLA_IFNAME, :cstring
-    rtattr :mtu, IFLA_MTU, :uint32
-    rtattr :link, IFLA_LINK, :int32
-    rtattr :qdisc, IFLA_QDISC, :cstring
-    rtattr :stats32, IFLA_STATS, :linkstats32
-    rtattr :cost, IFLA_COST
-    rtattr :master, IFLA_MASTER, :uint32
-    rtattr :wireless, IFLA_WIRELESS
-    rtattr :protinfo, IFLA_PROTINFO, :uchar
-    rtattr :txqlen, IFLA_TXQLEN, :uint32
-    rtattr :map, IFLA_MAP, :ifmap
-    rtattr :weight, IFLA_WEIGHT, :uint32
-    rtattr :operstate, IFLA_OPERSTATE, :uchar
-    rtattr :linkmode, IFLA_LINKMODE, :uchar
-    rtattr :linkinfo, IFLA_LINKINFO # nested
-    rtattr :net_ns_pid, IFLA_NET_NS_PID, :uint32
-    rtattr :ifalias, IFLA_IFALIAS, :cstring
-    rtattr :num_vf, IFLA_NUM_VF, :uint32
-    rtattr :vfinfo_list, IFLA_VFINFO_LIST
-    rtattr :stats64, IFLA_STATS64, :linkstats64
-    rtattr :vf_ports, IFLA_VF_PORTS
-    rtattr :port_self, IFLA_PORT_SELF
-    
-    # Return the best stats available (64bit or 32bit)
-    def stats
-      stats64 || stats32
-    end
-  end
-
-  class Addr < RtattrMessage
-    code RTM_NEWADDR, RTM_DELADDR, RTM_GETADDR
-    field :family, :uchar			# Socket::AF_*
-    field :prefixlen, :uchar
-    field :flags, :uchar			# IFA_F_*
-    field :scope, :uchar			# RT_SCOPE_*
-    field :index, :int
-    rtattr :address, IFA_ADDRESS, :l3addr
-    rtattr :local, IFA_LOCAL, :l3addr
-    rtattr :label, IFA_LABEL, :cstring
-    rtattr :broadcast, IFA_BROADCAST, :l3addr
-    rtattr :anycast, IFA_ANYCAST, :l3addr
-    rtattr :cacheinfo, IFA_CACHEINFO, :ifa_cacheinfo
-    rtattr :multicast, IFA_MULTICAST, :l3addr
-  end
-
-  class Route < RtattrMessage
-    code RTM_NEWROUTE, RTM_DELROUTE, RTM_GETROUTE
-    field :family, :uchar			# Socket::AF_*
-    field :dst_len, :uchar
-    field :src_len, :uchar
-    field :tos, :uchar
-    field :table, :uchar			# table id or RT_TABLE_*
-    field :protocol, :uchar			# RTPROT_*
-    field :scope, :uchar			# RT_SCOPE_*
-    field :type, :uchar				# RTN_*
-    field :flags, :uint				# RTM_F_*
-    rtattr :dst, RTA_DST, :l3addr
-    rtattr :src, RTA_SRC, :l3addr
-    rtattr :iif, RTA_IIF, :uint32
-    rtattr :oif, RTA_OIF, :uint32
-    rtattr :gateway, RTA_GATEWAY, :l3addr
-    rtattr :priority, RTA_PRIORITY, :uint32
-    rtattr :prefsrc, RTA_PREFSRC, :l3addr
-    rtattr :metrics, RTA_METRICS, :metrics
-    rtattr :multipath, RTA_MULTIPATH
-    rtattr :flow, RTA_FLOW
-    rtattr :cacheinfo, RTA_CACHEINFO, :rta_cacheinfo
-    rtattr :table2, RTA_TABLE, :uint32   # NOTE: table in two places!
   end
 end
