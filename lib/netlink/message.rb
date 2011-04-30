@@ -46,42 +46,66 @@ module Netlink
       :binary	=> { :pattern => "a*", :default => "".freeze },
       :cstring	=> { :pattern => "Z*", :default => "".freeze },
       :stats32	=> {
-        :pack => lambda { |val| val.to_a.pack("L23") },
-        :unpack => lambda { |str| LinkStats.new(*(str.unpack("L23"))) },
+        :pack => lambda { |val,obj| val.to_a.pack("L23") },
+        :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("L23"))) },
       },
       :stats64	=> {
-        :pack => lambda { |val| val.to_a.pack("Q23") },
-        :unpack => lambda { |str| LinkStats.new(*(str.unpack("Q23"))) },
+        :pack => lambda { |val,obj| val.to_a.pack("Q23") },
+        :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("Q23"))) },
       },
       :rta_cacheinfo => {
-        :pack => lambda { |val| val.to_a.pack("L*") },
-        :unpack => lambda { |str| RTACacheInfo.new(*(str.unpack("L*"))) },
+        :pack => lambda { |val,obj| val.to_a.pack("L*") },
+        :unpack => lambda { |str,obj| RTACacheInfo.new(*(str.unpack("L*"))) },
       },
       :ifa_cacheinfo => {
-        :pack => lambda { |val| val.to_a.pack("L*") },
-        :unpack => lambda { |str| IFACacheInfo.new(*(str.unpack("L*"))) },
+        :pack => lambda { |val,obj| val.to_a.pack("L*") },
+        :unpack => lambda { |str,obj| IFACacheInfo.new(*(str.unpack("L*"))) },
       },
       :ifmap => {
-        :pack => lambda { |val| val.to_a.pack(IFMAP_PACK) },
-        :unpack => lambda { |str| LinkIFMap.new(*(str.unpack(IFMAP_PACK))) },
+        :pack => lambda { |val,obj| val.to_a.pack(IFMAP_PACK) },
+        :unpack => lambda { |str,obj| LinkIFMap.new(*(str.unpack(IFMAP_PACK))) },
       },
       :metrics => {
-        :pack => lambda { |pairs|
-          pairs.map { |code,val| [METRIC_SIZE,code,val].pack(METRIC_PACK) }.join
+        :pack => lambda { |metrics,obj|
+          metrics.map { |code,val| [METRIC_SIZE,code,val].pack(METRIC_PACK) }.join
         },
-        :unpack => lambda { |str|
+        :unpack => lambda { |str,obj|
           res = {}  # in kernel the dst.metrics structure is array of u32
           RtattrMessage.unpack_rtattr(str) { |code,val| res[code] = val.unpack("L").first }
           res
         },
       },
       :l2addr => {
-        :pack => lambda { |val| Array(val).pack("H*") },
-        :unpack => lambda { |val| val.unpack("H*").first },
+        :pack => lambda { |val,obj| Array(val).pack("H*") },
+        :unpack => lambda { |val,obj| val.unpack("H*").first },
       },
       :l3addr => {
-        :pack => lambda { |val| val.hton },
-        :unpack => lambda { |val| IPAddr.new_ntoh(val) },
+        :pack => lambda { |val,obj|
+          case obj.family
+          when Socket::AF_INET, Socket::AF_INET6
+            ip = case val
+            when IPAddr
+              val
+            when Integer
+              IPAddr.new(val, obj.family)
+            else
+              IPAddr.new(val)
+            end
+            raise "Mismatched address family" unless obj.family == ip.family
+            ip.hton
+          else
+            raise "Missing or mismatched address family" if val.is_a?(IPAddr)
+            val
+          end
+        },
+        :unpack => lambda { |val,obj|
+          case obj.family
+          when Socket::AF_INET, Socket::AF_INET6
+            IPAddr.new_ntoh(val)
+          else
+            val
+          end
+        },
       },
     }
 
@@ -216,7 +240,7 @@ module Netlink
         if val = @attrs[name]
           Message.pad(data)
           if pack = info[:pack]
-            val = pack[val]
+            val = pack[val,self]
           elsif pattern = info[:pattern]
             val = Array(val).pack(pattern)
           end
@@ -235,7 +259,7 @@ module Netlink
           if !info
             # skip
           elsif unpack = info[:unpack]
-            val = unpack[val]
+            val = unpack[val,res]
           elsif pattern = info[:pattern]
             val = val.unpack(pattern).first
           end
