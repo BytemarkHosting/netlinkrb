@@ -7,18 +7,6 @@ require 'netlink/nlsocket'
 require 'netlink/message'
 
 module Netlink
-  # struct ipq_mode_msg
-  class IPQMode < Message
-    code IPQM_MODE
-    
-    field :value, :uchar		# IPQ_*
-    field_pad 1.size - 1		# FIXME! C structs need aligning
-    field :range, :size_t
-    # FIXME! Kernel enforces that IPQM_MODE messages must be at least
-    # as large as IPQM_VERDICT messages.
-    field_pad 16
-  end
-  
   # struct ipq_packet_msg
   class IPQPacket < Message
     code IPQM_PACKET
@@ -28,13 +16,12 @@ module Netlink
     field :timestamp_sec, :long
     field :timestamp_usec, :long
     field :hook, :uint
-    field :indev_name, :pattern => "Z#{IFNAMSIZ}"
-    field :outdev_name, :pattern => "Z#{IFNAMSIZ}"
+    field :indev_name, :pattern => "Z#{IFNAMSIZ}", :default => EMPTY_STRING
+    field :outdev_name, :pattern => "Z#{IFNAMSIZ}", :default => EMPTY_STRING
     field :hw_protocol, :ns
     field :hw_type, :ushort
     field :hw_addrlen, :uchar
-    field :hw_addr, :pattern => "a8"
-    field_pad 1.size - 1		# FIXME!
+    field :hw_addr, :pattern => "a8", :default => EMPTY_STRING
     field :data_len, :size_t
     field :payload, :binary 		# TODO: clip to data_len
   end
@@ -44,10 +31,20 @@ module Netlink
     code IPQM_VERDICT
     
     field :value, :uint			# NF_*
-    field_pad 1.size - 4
     field :id, :ulong
     field :data_len, :size_t		# TODO: auto set from payload.bytesize
     field :payload, :binary		# optional replacement packet
+  end
+
+  # struct ipq_mode_msg
+  class IPQMode < Message
+    code IPQM_MODE
+    
+    field :value, :uchar		# IPQ_*
+    field :range, :size_t
+    # NOTE! Kernel enforced that IPQM_MODE messages must be at least
+    # as large as IPQM_VERDICT messages (otherwise you get EINVAL)
+    field_pad IPQVerdict.bytesize - bytesize
   end
   
   module Firewall

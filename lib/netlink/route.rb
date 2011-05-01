@@ -26,7 +26,6 @@ module Netlink
     code RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK
 
     field :family, :uchar			# Socket::AF_*
-    field_pad
     field :type, :ushort			# ARPHRD_*
     field :index, :int
     field :flags, :uint				# IFF_*

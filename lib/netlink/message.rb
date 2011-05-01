@@ -31,6 +31,11 @@ module Netlink
   class Message
     TYPE_INFO = {} #:nodoc
     
+    # The size of the structure (in bytes)
+    def self.bytesize
+      @bytesize
+    end
+    
     # Define a new type for use with field and rtattr. You supply the
     # symbolic name for the type, and a set of options. field supports only:
     #    :pattern => "str"    # format string for Array#pack / String#unpack
@@ -53,27 +58,27 @@ module Netlink
     end
         
     define_type :uchar,   :pattern => "C"
-    define_type :uint16,  :pattern => "S"
-    define_type :uint32,  :pattern => "L"
+    define_type :uint16,  :pattern => "S",  :align => true
+    define_type :uint32,  :pattern => "L",  :align => true
     define_type :char,    :pattern => "c"
-    define_type :int16,   :pattern => "s"
-    define_type :int32,   :pattern => "l"
-    define_type :ushort,  :pattern => "S_"
-    define_type :uint,    :pattern => "I"
-    define_type :ulong,   :pattern => "L_"
-    define_type :short,   :pattern => "s_"
-    define_type :int,     :pattern => "i"
-    define_type :long,    :pattern => "l_"
-    define_type :ns,      :pattern => "n"
-    define_type :nl,      :pattern => "N"
+    define_type :int16,   :pattern => "s",  :align => true
+    define_type :int32,   :pattern => "l",  :align => true
+    define_type :ushort,  :pattern => "S_", :align => true
+    define_type :uint,    :pattern => "I",  :align => true
+    define_type :ulong,   :pattern => "L_", :align => true
+    define_type :short,   :pattern => "s_", :align => true
+    define_type :int,     :pattern => "i",  :align => true
+    define_type :long,    :pattern => "l_", :align => true
+    define_type :ns,      :pattern => "n",  :align => true
+    define_type :nl,      :pattern => "N",  :align => true
     
     SIZE_T_SIZE = Integer(`echo __SIZEOF_SIZE_T__ | gcc -E -P -`) rescue 1.size
     define_type :size_t,
       case SIZE_T_SIZE
       when 8
-        {:pattern => "Q"}
+        {:pattern => "Q", :align => true}
       when 4
-        {:pattern => "L"}
+        {:pattern => "L", :align => true}
       else
         raise "Bad size_t"
       end
@@ -156,7 +161,7 @@ module Netlink
       @attrs.each(&blk)
     end
     
-    # Set a field by name. Can use either symbol or string as key.
+    # Set a field by name. Currently can use either symbol or string as key.
     def []=(k,v)
       send "#{k}=", v
     end
@@ -170,6 +175,7 @@ module Netlink
       subclass.const_set(:FIELDS, [])
       subclass.const_set(:FORMAT, "")
       subclass.const_set(:DEFAULTS, {})
+      subclass.instance_variable_set(:@bytesize, 0)
     end
 
     # Map of numeric message type code => message class
@@ -186,9 +192,21 @@ module Netlink
     #    field :foo, :uchar, :default=>0xff    # use this default value
     def self.field(name, type, opt={})
       info = find_type(type)
+      pattern = info[:pattern]
+      default = opt.fetch(:default) { info.fetch(:default, 0) }
+
+      # Apply padding for structure alignment if necessary
+      size = info[:size] || [default].pack(pattern).bytesize
+      if align = info[:align]
+        align = size if align == true
+        field_pad alignto(@bytesize, align) - @bytesize
+      end
+      @bytesize += size
+
       self::FIELDS << name
-      self::FORMAT << info[:pattern]
-      self::DEFAULTS[name] = opt.fetch(:default) { info.fetch(:default, 0) }
+      self::FORMAT << pattern
+      self::DEFAULTS[name] = default
+
       define_method name do
         @attrs.fetch name
       end
@@ -198,8 +216,11 @@ module Netlink
     end
 
     # Skip pad byte(s) - default 1
-    def self.field_pad(count=nil)
-      self::FORMAT << "x#{count}" if count != 0
+    def self.field_pad(count=1)
+      if count > 0
+        self::FORMAT << "x#{count}"
+        @bytesize += count
+      end
     end
     
     # Returns the packed binary representation of this message (without
@@ -224,6 +245,11 @@ module Netlink
     NLMSG_ALIGNTO_1 = NLMSG_ALIGNTO-1 #:nodoc:
     NLMSG_ALIGNTO_1_MASK = ~NLMSG_ALIGNTO_1 #:nodoc:
 
+    # Round up a number to multiple of m, where m is a power of two
+    def self.alignto(val, m)
+      (val + (m-1)) & ~(m-1)
+    end
+    
     # Round up a length to a multiple of NLMSG_ALIGNTO bytes
     def self.align(n)
       (n + NLMSG_ALIGNTO_1) & NLMSG_ALIGNTO_1_MASK
@@ -268,7 +294,7 @@ module Netlink
 
     # Return the byte offset to the first rtattr
     def self.attr_offset
-      @attr_offset ||= Message.align(new.to_s.bytesize)
+      @attr_offset ||= Message.align(@bytesize)
     end
     
     # Returns the packed binary representation of this message.
