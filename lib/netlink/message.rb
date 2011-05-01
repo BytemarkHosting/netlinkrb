@@ -1,12 +1,13 @@
+require 'cstruct'
 require 'netlink/constants'
 require 'ipaddr'
 
 module Netlink
-  EMPTY_STRING = "".freeze #:nodoc:
-  EMPTY_ARRAY  = [].freeze #:nodoc:
-
   NLMSGHDR_PACK = "LSSLL".freeze  # :nodoc:
   NLMSGHDR_SIZE = [0,0,0,0,0].pack(NLMSGHDR_PACK).bytesize # :nodoc:
+
+  EMPTY_STRING = Cstruct::EMPTY_STRING #:nodoc:
+  EMPTY_ARRAY  = Cstruct::EMPTY_ARRAY  #:nodoc:
 
   # This is the base class from which all Netlink messages are derived.
   # To define a new Netlink message, make a subclass and then call the
@@ -14,78 +15,42 @@ module Netlink
   # order. The "code" metaprogramming method defines which incoming message
   # types are to be built using this structure.
   #
-  # You can then instantiate the message by calling 'new' as usual. It is
-  # usually most convenient to pass in a hash of values when creating a message.
-  #
-  #   class Foo < Message
-  #     code 10, 11, 12
-  #     field :foo, :char, :default=>255
-  #     field :bar, :long
-  #   end
-  #   msg = Foo.new(:bar => 123)  # or Foo.new("bar" => 123)
-  #   msg.bar = 456
-  #   msg2 = Foo.new(:qux => 999) # error: no method "qux="
-  #   msg2 = Foo.new(msg)         # cloning an existing message
-  #
   # Use RtattrMessage instead for messages which are followed by variable rtattrs.
-  class Message
-    TYPE_INFO = {} #:nodoc
-    
-    # The size of the structure (in bytes)
-    def self.bytesize
-      @bytesize
-    end
-    
-    # Define a new type for use with field and rtattr. You supply the
-    # symbolic name for the type, and a set of options. field supports only:
-    #    :pattern => "str"    # format string for Array#pack / String#unpack
-    #    :default => val      # default (if not 0)
-    # rtattr optionally also supports:
-    #    :pack => lambda      # code to convert value to binary string
-    #    :unpack  => lambda   # code to convert binary string to value
-    def self.define_type(name, opt)
-      TYPE_INFO[name] = opt
-    end
-    
-    # Return a type info hash given a type id. Raises IndexError if not found.
-    def self.find_type(type)
-      case type
-      when nil, Hash
-        type
-      else
-        TYPE_INFO.fetch(type)
-      end
-    end
-        
-    define_type :uchar,   :pattern => "C"
-    define_type :uint16,  :pattern => "S",  :align => true
-    define_type :uint32,  :pattern => "L",  :align => true
-    define_type :char,    :pattern => "c"
-    define_type :int16,   :pattern => "s",  :align => true
-    define_type :int32,   :pattern => "l",  :align => true
-    define_type :ushort,  :pattern => "S_", :align => true
-    define_type :uint,    :pattern => "I",  :align => true
-    define_type :ulong,   :pattern => "L_", :align => true
-    define_type :short,   :pattern => "s_", :align => true
-    define_type :int,     :pattern => "i",  :align => true
-    define_type :long,    :pattern => "l_", :align => true
-    define_type :ns,      :pattern => "n",  :align => true
-    define_type :nl,      :pattern => "N",  :align => true
-    
-    SIZE_T_SIZE = Integer(`echo __SIZEOF_SIZE_T__ | gcc -E -P -`) rescue 1.size
-    define_type :size_t,
-      case SIZE_T_SIZE
-      when 8
-        {:pattern => "Q", :align => true}
-      when 4
-        {:pattern => "L", :align => true}
-      else
-        raise "Bad size_t"
-      end
-    define_type :binary,  :pattern => "a*", :default => EMPTY_STRING
-    # cstring has \x00 terminator when sent over wire
-    define_type :cstring, :pattern => "Z*", :default => EMPTY_STRING
+  class Message < Cstruct
+    # Map of numeric message type code => message class
+    CODE_TO_MESSAGE = {}
 
+    # Define which message type code(s) to build using this structure
+    def self.code(*codes)
+      codes.each { |code| CODE_TO_MESSAGE[code] = self }
+    end
+    
+    NLMSG_ALIGNTO_1 = NLMSG_ALIGNTO-1 #:nodoc:
+    NLMSG_ALIGNTO_1_MASK = ~NLMSG_ALIGNTO_1 #:nodoc:
+
+    # Round up a length to a multiple of NLMSG_ALIGNTO bytes
+    def self.nlmsg_align(n)
+      (n + NLMSG_ALIGNTO_1) & NLMSG_ALIGNTO_1_MASK
+    end
+
+    PADDING = ("\000" * NLMSG_ALIGNTO).freeze #:nodoc:
+
+    # Pad a string up to a multiple of NLMSG_ALIGNTO bytes. Returns str.
+    def self.nlmsg_pad(str)
+      str << PADDING[0, nlmsg_align(str.bytesize) - str.bytesize]
+    end
+  end
+
+  # Extends Message to support variable Rtattr attributes. Use 'field'
+  # to define the fixed parts of the message, and 'rtattr' to define the
+  # permitted rtattrs. We assume that any particular rtattr is not repeated,
+  # so we store them in the same underlying hash and create simple accessors
+  # for them.
+  #
+  # As well as using :pattern for simple pack/unpack, you can also
+  # specify :pack and :unpack lambdas to do higher-level conversion
+  # of field values.
+  class RtattrMessage < Message
     # L2 addresses are presented as ASCII hex. You may optionally include
     # colons, hyphens or dots.
     #    IFInfo.new(:address => "00:11:22:33:44:55")   # this is OK
@@ -144,131 +109,6 @@ module Netlink
           end
         }
 
-    def initialize(h=nil)
-      if h.instance_of?(self.class)
-        @attrs = h.to_hash.dup
-      else
-        @attrs = self.class::DEFAULTS.dup
-        h.each { |k,v| self[k] = v } if h
-      end
-    end
-    
-    def to_hash
-      @attrs
-    end
-    
-    def each(&blk)
-      @attrs.each(&blk)
-    end
-    
-    # Set a field by name. Currently can use either symbol or string as key.
-    def []=(k,v)
-      send "#{k}=", v
-    end
-
-    # Retrieve a field by name. Must use symbol as key.
-    def [](k)
-      @attrs[k]
-    end
-    
-    def self.inherited(subclass) #:nodoc:
-      subclass.const_set(:FIELDS, [])
-      subclass.const_set(:FORMAT, "")
-      subclass.const_set(:DEFAULTS, {})
-      subclass.instance_variable_set(:@bytesize, 0)
-    end
-
-    # Map of numeric message type code => message class
-    CODE_TO_MESSAGE = {}
-
-    # Define which message type code(s) to build using this structure
-    def self.code(*codes)
-      codes.each { |code| CODE_TO_MESSAGE[code] = self }
-    end
-    
-    # Define a field for this message, which creates accessor methods and
-    # sets up data required to pack and unpack the structure.
-    #    field :foo, :uchar
-    #    field :foo, :uchar, :default=>0xff    # use this default value
-    def self.field(name, type, opt={})
-      info = find_type(type)
-      pattern = info[:pattern]
-      default = opt.fetch(:default) { info.fetch(:default, 0) }
-
-      # Apply padding for structure alignment if necessary
-      size = info[:size] || [default].pack(pattern).bytesize
-      if align = info[:align]
-        align = size if align == true
-        field_pad alignto(@bytesize, align) - @bytesize
-      end
-      @bytesize += size
-
-      self::FIELDS << name
-      self::FORMAT << pattern
-      self::DEFAULTS[name] = default
-
-      define_method name do
-        @attrs.fetch name
-      end
-      define_method "#{name}=" do |val|
-        @attrs.store name, val
-      end
-    end
-
-    # Skip pad byte(s) - default 1
-    def self.field_pad(count=1)
-      if count > 0
-        self::FORMAT << "x#{count}"
-        @bytesize += count
-      end
-    end
-    
-    # Returns the packed binary representation of this message (without
-    # header, and not padded to NLMSG_ALIGNTO bytes)
-    def to_s
-      self.class::FIELDS.map { |key| self[key] }.pack(self.class::FORMAT)
-    end
-
-    def inspect
-      "#<#{self.class} #{@attrs.inspect}>"
-    end
-    
-    # Convert a binary representation of this message into an object instance
-    def self.parse(data)
-      res = new
-      data.unpack(self::FORMAT).zip(self::FIELDS).each do |val, key|
-        res[key] = val
-      end
-      res
-    end
-
-    NLMSG_ALIGNTO_1 = NLMSG_ALIGNTO-1 #:nodoc:
-    NLMSG_ALIGNTO_1_MASK = ~NLMSG_ALIGNTO_1 #:nodoc:
-
-    # Round up a number to multiple of m, where m is a power of two
-    def self.alignto(val, m)
-      (val + (m-1)) & ~(m-1)
-    end
-    
-    # Round up a length to a multiple of NLMSG_ALIGNTO bytes
-    def self.align(n)
-      (n + NLMSG_ALIGNTO_1) & NLMSG_ALIGNTO_1_MASK
-    end
-
-    PADDING = ("\000" * NLMSG_ALIGNTO).freeze #:nodoc:
-
-    # Pad a string up to a multiple of NLMSG_ALIGNTO bytes. Returns str.
-    def self.pad(str)
-      str << PADDING[0, align(str.bytesize) - str.bytesize]
-    end
-  end
-
-  # Extends Message to support variable Rtattr attributes. Use 'field'
-  # to define the fixed parts of the message, and 'rtattr' to define the
-  # permitted rtattrs. We assume that any particular rtattr is not repeated,
-  # so we store them in the same underlying hash and create simple accessors
-  # for them.
-  class RtattrMessage < Message
     RTATTR_PACK = "S_S_".freeze #:nodoc:
     RTATTR_SIZE = [0,0].pack(RTATTR_PACK).bytesize #:nodoc:
 
@@ -294,10 +134,10 @@ module Netlink
 
     # Return the byte offset to the first rtattr
     def self.attr_offset
-      @attr_offset ||= Message.align(@bytesize)
+      @attr_offset ||= Message.nlmsg_align(@bytesize)
     end
     
-    # Returns the packed binary representation of this message.
+    # Returns the packed binary representation of the entire message.
     # The main message is processed *after* the rtattrs; this is so that
     # the address family can be set automatically while processing any
     # optional l3 address rtattrs.
@@ -305,7 +145,7 @@ module Netlink
       data = ""
       self.class::RTATTRS.each do |code, (name, info)|
         if val = @attrs[name]
-          Message.pad(data)  # assume NLMSG_ALIGNTO == NLA_ALIGNTO
+          Message.nlmsg_pad(data)  # assume NLMSG_ALIGNTO == NLA_ALIGNTO
           if pack = info[:pack]
             val = pack[val,self]
           elsif pattern = info[:pattern]
@@ -314,7 +154,7 @@ module Netlink
           data << [val.bytesize+RTATTR_SIZE, code].pack(RTATTR_PACK) << val
         end
       end
-      data.empty? ? super : Message.pad(super) + data
+      data.empty? ? super : Message.nlmsg_pad(super) + data
     end
     
     # Convert a binary representation of this message into an object instance.
@@ -351,17 +191,17 @@ module Netlink
         raise "Truncated rtattr body!" if ptr + len > data.bytesize
         raise "Invalid rtattr len!" if len < RTATTR_SIZE
         yield code, data[ptr+RTATTR_SIZE, len-RTATTR_SIZE]
-        ptr = Message.align(ptr + len) # assume NLMSG_ALIGNTO == NLA_ALIGNTO
+        ptr = Message.nlmsg_align(ptr + len) # assume NLMSG_ALIGNTO == NLA_ALIGNTO
       end
     end
   end
 
-  # struct nlmsgerr
+  # struct nlmsgerr (netlink.h)
   class Err < Message
     code NLMSG_ERROR
 
     field :error, :int
-    #field :msg, :pattern => NLMSGHDR_PACK
+    #field :msg, :pattern => NLMSGHDR_PACK (can't, returns multiple values)
     field :msg_len, :uint32
     field :msg_type, :uint16
     field :msg_flags, :uint16

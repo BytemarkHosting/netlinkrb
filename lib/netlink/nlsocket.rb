@@ -101,7 +101,7 @@ module Netlink
       msgs.each_with_index do |msg, index|
         if index < msgs.size - 1
           data << build_message(type, msg, flags|NLM_F_MULTI, next_seq, pid)
-          Message.pad(data)
+          Message.nlmsg_pad(data)
         else
           data << build_message(type, msg, flags, next_seq, pid)
         end
@@ -215,7 +215,7 @@ module Netlink
         data = mesg[ptr+NLMSGHDR_SIZE, len-NLMSGHDR_SIZE]
         STDERR.puts "  data=#{data.inspect}" if $DEBUG && !data.empty?
         yield type, flags, seq, pid, data
-        ptr = ptr + Message.align(len)
+        ptr = ptr + Message.nlmsg_align(len)
         break unless flags & Netlink::NLM_F_MULTI
       end
     end
