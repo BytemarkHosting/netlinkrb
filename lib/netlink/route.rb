@@ -22,7 +22,7 @@ module Netlink
   IFMap = Struct.new :mem_start, :mem_end, :base_addr, :irq, :dma, :port
 
   # struct ifinfomsg
-  class Link < RtattrMessage
+  class IFInfo < RtattrMessage
     code RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK
 
     field :family, :uchar			# Socket::AF_*
@@ -73,7 +73,7 @@ module Netlink
   IFACacheInfo = Struct.new :prefered, :valid, :cstamp, :tstamp
 
   # struct ifaddrmsg
-  class Addr < RtattrMessage
+  class IFAddr < RtattrMessage
     code RTM_NEWADDR, RTM_DELADDR, RTM_GETADDR
 
     field :family, :uchar			# Socket::AF_*
@@ -96,7 +96,7 @@ module Netlink
   RTACacheInfo = Struct.new :clntref, :lastuse, :expires, :error, :used, :id, :ts, :tsage
 
   # struct rtmsg
-  class Route < RtattrMessage
+  class RT < RtattrMessage
     code RTM_NEWROUTE, RTM_DELROUTE, RTM_GETROUTE
 
     field :family, :uchar			# Socket::AF_*
@@ -144,33 +144,33 @@ module Netlink
     end
 
     # Download a list of links (interfaces). Either returns an array of
-    # Netlink::Link objects, or yields them to the supplied block.
+    # Netlink::IFInfo objects, or yields them to the supplied block.
     #
-    #   res = nl.link_list
+    #   res = nl.read_links
     #   p res
-    #   [#<Netlink::Link {:family=>0, :pad=>0, :type=>772, :index=>1,
+    #   [#<Netlink::IFInfo {:family=>0, :pad=>0, :type=>772, :index=>1,
     #    :flags=>65609, :change=>0, :ifname=>"lo", :txqlen=>0, :operstate=>0,
     #    :linkmode=>0, :mtu=>16436, :qdisc=>"noqueue", :map=>"...",
     #    :address=>"\x00\x00\x00\x00\x00\x00", :broadcast=>"\x00\x00\x00\x00\x00\x00",
-    #    :stats=>#<struct Netlink::LinkStats rx_packets=22, ...>,
+    #    :stats32=>#<struct Netlink::LinkStats rx_packets=22, ...>,
     #    :stats64=>#<struct Netlink::LinkStats rx_packets=22, ...>}>, ...]
     def read_links(opt=nil, &blk)
-      send_request RTM_GETLINK, Link.new(opt),
+      send_request RTM_GETLINK, IFInfo.new(opt),
                    NLM_F_ROOT | NLM_F_MATCH | NLM_F_REQUEST
       receive_until_done(RTM_NEWLINK, &blk)
     end
 
     # Download a list of routes. Either returns an array of
-    # Netlink::Route objects, or yields them to the supplied block.
+    # Netlink::RT objects, or yields them to the supplied block.
     #
     # A hash of kernel options may be supplied, but you might also have
     # to perform your own filtering. e.g.
     #   rt.read_routes(:family=>Socket::AF_INET)           # works
     #   rt.read_routes(:protocol=>Netlink::RTPROT_STATIC)  # ignored
     #
-    #   res = nl.routes(:family => Socket::AF_INET)
+    #   res = nl.read_routes(:family => Socket::AF_INET)
     #   p res
-    #   [#<Netlink::Route {:family=>2, :dst_len=>32, :src_len=>0, :tos=>0,
+    #   [#<Netlink::RT {:family=>2, :dst_len=>32, :src_len=>0, :tos=>0,
     #    :table=>255, :protocol=>2, :scope=>253, :type=>3, :flags=>0, :table2=>255,
     #    :dst=>#<IPAddr: IPv4:127.255.255.255/255.255.255.255>,
     #    :prefsrc=>#<IPAddr: IPv4:127.0.0.1/255.255.255.255>, :oif=>1}>, ...]
@@ -178,29 +178,29 @@ module Netlink
     # Note that not all attributes will always be present. In particular,
     # a defaultroute (dst_len=0) misses out the dst address completely:
     #
-    #   [#<Netlink::Route {:family=>2, :dst_len=>0, :src_len=>0, :tos=>0,
+    #   [#<Netlink::RT {:family=>2, :dst_len=>0, :src_len=>0, :tos=>0,
     #    :table=>254, :protocol=>4, :scope=>0, :type=>1, :flags=>0, :table2=>254,
     #    :gateway=>#<IPAddr: IPv4:10.69.255.253/255.255.255.255>, :oif=>2}>, ...]
     def read_routes(opt=nil, &blk)
-      send_request RTM_GETROUTE, Route.new(opt),
+      send_request RTM_GETROUTE, RT.new(opt),
                    NLM_F_ROOT | NLM_F_MATCH | NLM_F_REQUEST
       receive_until_done(RTM_NEWROUTE, &blk)
     end
     
     # Download a list of link addresses. Either returns an array of
-    # Netlink::Addr objects, or yields them to the supplied block.
+    # Netlink::IFAddr objects, or yields them to the supplied block.
     # You will need to use the 'index' to cross reference to the interface.
     #
     # A hash of kernel options may be supplied, but likely only :family
     # is honoured.
     #
-    #   res = nl.addrs(:family => Socket::AF_INET)
+    #   res = nl.read_addrs(:family => Socket::AF_INET)
     #   p res
-    #   [#<Netlink::Addr {:family=>2, :prefixlen=>8, :flags=>128, :scope=>254,
+    #   [#<Netlink::IFAddr {:family=>2, :prefixlen=>8, :flags=>128, :scope=>254,
     #    :index=>1, :address=>#<IPAddr: IPv4:127.0.0.1/255.255.255.255>,
     #    :local=>#<IPAddr: IPv4:127.0.0.1/255.255.255.255>, :label=>"lo"}>, ...]
     def read_addrs(opt=nil, &blk)
-      send_request RTM_GETADDR, Addr.new(opt),
+      send_request RTM_GETADDR, IFAddr.new(opt),
                    NLM_F_ROOT | NLM_F_MATCH | NLM_F_REQUEST
       receive_until_done(RTM_NEWADDR, &blk)
     end

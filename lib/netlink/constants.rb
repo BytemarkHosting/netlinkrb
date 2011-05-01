@@ -118,7 +118,7 @@ module Netlink
   RTM_GETDCB		= 78
   RTM_SETDCB		= 79
 
-  # Route#type
+  # RT#type
   RTN_UNSPEC		= 0
   RTN_UNICAST		= 1
   RTN_LOCAL		= 2
@@ -132,7 +132,7 @@ module Netlink
   RTN_NAT		= 10
   RTN_XRESOLVE		= 11
   
-  # Route#protocol
+  # RT#protocol
   RTPROT_UNSPEC		= 0
   RTPROT_REDIRECT	= 1
   RTPROT_KERNEL		= 2
@@ -148,20 +148,20 @@ module Netlink
   RTPROT_NTK		= 15
   RTPROT_DHCP		= 16
   
-  # Route#scope, Addr#scope
+  # RT#scope, IFAddr#scope
   RT_SCOPE_UNIVERSE	= 0
   RT_SCOPE_SITE		= 200
   RT_SCOPE_LINK		= 253
   RT_SCOPE_HOST		= 254
   RT_SCOPE_NOWHERE	= 255
 
-  # Route#flags
+  # RT#flags
   RTM_F_NOTIFY		= 0x100
   RTM_F_CLONED		= 0x200
   RTM_F_EQUALIZE	= 0x400
   RTM_F_PREFIX		= 0x800
 
-  # Route#table (reserved values)
+  # RT#table (reserved values)
   RT_TABLE_UNSPEC	= 0
   RT_TABLE_COMPAT	= 252
   RT_TABLE_DEFAULT	= 253
@@ -183,7 +183,7 @@ module Netlink
   RTA_CACHEINFO		= 12
   RTA_TABLE		= 15
   
-  # Keys for Route#metrics
+  # Keys for RT#metrics
   RTAX_UNSPEC		= 0
   RTAX_LOCK		= 1
   RTAX_MTU		= 2

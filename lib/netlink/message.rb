@@ -67,7 +67,7 @@ module Netlink
 
     # L2 addresses are presented as ASCII hex. You may optionally include
     # colons, hyphens or dots.
-    #    Link.new(:address => "00:11:22:33:44:55")   # this is OK
+    #    IFInfo.new(:address => "00:11:22:33:44:55")   # this is OK
     define_type :l2addr,
         :pack => lambda { |val,obj| [val.delete(":-.")].pack("H*") },
         :unpack => lambda { |val,obj| val.unpack("H*").first }
@@ -75,15 +75,15 @@ module Netlink
     # L3 addresses are presented as IPAddr objects where possible. When
     # setting an address, you may provide an IPAddr object, an IP in readable
     # string form, or an integer. All of the following are acceptable:
-    #   Addr.new(:family=>Socket::AF_INET, :address=>IPAddr.new("1.2.3.4"))
-    #   Addr.new(:family=>Socket::AF_INET, :address=>"1.2.3.4")
-    #   Addr.new(:family=>Socket::AF_INET, :address=>0x01020304)
+    #   IFAddr.new(:family=>Socket::AF_INET, :address=>IPAddr.new("1.2.3.4"))
+    #   IFAddr.new(:family=>Socket::AF_INET, :address=>"1.2.3.4")
+    #   IFAddr.new(:family=>Socket::AF_INET, :address=>0x01020304)
     # Furthermore, the 'family' will be set automatically if it is unset
     # at the time the message is encoded:
-    #   Addr.new(:address=>IPAddr.new("1.2.3.4")).to_s     # ok
-    #   Addr.new(:address=>"1.2.3.4").to_s                 # ok
-    #   Addr.new(:address=>0x01020304).to_s                # error, unknown family
-    #   Addr.new(:address=>"1.2.3.4", :local=>"::1").to_s  # error, mismatched families
+    #   IFAddr.new(:address=>IPAddr.new("1.2.3.4")).to_s     # ok
+    #   IFAddr.new(:address=>"1.2.3.4").to_s                 # ok
+    #   IFAddr.new(:address=>0x01020304).to_s                # error, unknown family
+    #   IFAddr.new(:address=>"1.2.3.4", :local=>"::1").to_s  # error, mismatched families
     define_type :l3addr,
         :pack => lambda { |val,obj|
           case obj.family
