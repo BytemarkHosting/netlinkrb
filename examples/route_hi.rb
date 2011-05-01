@@ -8,7 +8,7 @@ require 'netlink/route'
 # The data is memoized - that is, it's downloaded from the kernel once
 # and then manipulated internally.
 
-nl = Netlink::RTSocket.new
+nl = Netlink::Route::Socket.new
 pp nl.link["eth0"]
 pp nl.addrs["eth0"]
 
