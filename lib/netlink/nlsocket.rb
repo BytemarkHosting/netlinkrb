@@ -153,10 +153,11 @@ module Netlink
     end
 
     # Loop infinitely receiving messages of given type(s), ignoring pid and seq.
-    def receive_stream(*expected_type)
+    # Raises an exception on NLMSG_ERROR.
+    def receive_stream(*expected_types)
       loop do
         receive_response(nil) do |type, flags, seq, pid, msg|
-          if expected_type.include?(type)
+          if expected_types.include?(type)
             yield msg
           elsif type == NLMSG_ERROR
             raise ERRNO_MAP[-msg.error] || "Netlink Error: #{msg.inspect}"
