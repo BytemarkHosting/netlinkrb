@@ -3,6 +3,13 @@ require 'netlink/constants'
 require 'netlink/message'
 
 module Netlink
+  ERRNO_MAP = {}  #:nodoc:
+  Errno.constants.each do |k|
+    klass = Errno.const_get(k)
+    next unless klass.is_a?(Class) and Class.const_defined?(:Errno)
+    ERRNO_MAP[klass::Errno] = klass
+  end
+
   # NLSocket provides low-level sending and receiving of messages across
   # a netlink socket, adding headers to sent messages and parsing
   # received messages.
@@ -76,9 +83,6 @@ module Netlink
       )
     end
 
-    NLMSGHDR_PACK = "LSSLL".freeze  # :nodoc:
-    NLMSGHDR_SIZE = [0,0,0,0,0].pack(NLMSGHDR_PACK).bytesize # :nodoc:
-
     # Build a message comprising header+body. It is not padded at the end.
     def build_message(type, body, flags=NLM_F_REQUEST, seq=next_seq, pid=@pid)
       body = body.to_s
@@ -126,7 +130,7 @@ module Netlink
       res = []
       blk ||= lambda { |msg| res << msg }
       junk_handler ||= lambda { |type, flags, seq, pid, msg|
-        warn "Discarding junk message (#{type}) #{msg}" } if $VERBOSE
+        warn "Discarding junk message (#{type}, #{flags}, #{seq}, #{pid}) #{msg.inspect}" } if $VERBOSE
       loop do
         receive_response(timeout) do |type, flags, seq, pid, msg|
           if pid != @pid || seq != @seq
@@ -137,13 +141,28 @@ module Netlink
           when NLMSG_DONE
             return res
           when NLMSG_ERROR
-            raise "Netlink Error received"
+            raise ERRNO_MAP[-msg.error] || "Netlink Error: #{msg.inspect}"
           end
           if expected_type && type != expected_type
             junk_handler[type, flags, seq, pid, msg] if junk_handler
             next
           end
           blk.call(msg) if msg
+        end
+      end
+    end
+
+    # Loop infinitely receiving messages of given type(s), ignoring pid and seq.
+    def receive_stream(*expected_type)
+      loop do
+        receive_response(nil) do |type, flags, seq, pid, msg|
+          if expected_type.include?(type)
+            yield msg
+          elsif type == NLMSG_ERROR
+            raise ERRNO_MAP[-msg.error] || "Netlink Error: #{msg.inspect}"
+          else
+            warn "Received unexpected message type #{type}: #{msg.inspect}"
+          end
         end
       end
     end

@@ -26,7 +26,7 @@ module Netlink
     code RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK
 
     field :family, :uchar			# Socket::AF_*
-    field :pad, :uchar
+    field_pad
     field :type, :ushort			# ARPHRD_*
     field :index, :int
     field :flags, :uint				# IFF_*
@@ -149,7 +149,7 @@ module Netlink
       #
       #   res = nl.read_links
       #   p res
-      #   [#<Netlink::IFInfo {:family=>0, :pad=>0, :type=>772, :index=>1,
+      #   [#<Netlink::IFInfo {:family=>0, :type=>772, :index=>1,
       #    :flags=>65609, :change=>0, :ifname=>"lo", :txqlen=>0, :operstate=>0,
       #    :linkmode=>0, :mtu=>16436, :qdisc=>"noqueue", :map=>"...",
       #    :address=>"\x00\x00\x00\x00\x00\x00", :broadcast=>"\x00\x00\x00\x00\x00\x00",

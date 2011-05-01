@@ -268,6 +268,8 @@ module Netlink
   # ... others to be added as required
 
   # linux/if.h
+  IFNAMSIZ		= 16
+  IFALIASZ		= 256
   IFF_UP		= 0x1
   IFF_BROADCAST		= 0x2
   IFF_DEBUG		= 0x4
@@ -289,4 +291,22 @@ module Netlink
   IFF_ECHO		= 0x40000
   IFF_VOLATILE		= (IFF_LOOPBACK|IFF_POINTOPOINT|IFF_BROADCAST|IFF_ECHO|\
 			IFF_MASTER|IFF_SLAVE|IFF_RUNNING|IFF_LOWER_UP|IFF_DORMANT)
+
+  # linux/netfilter.h
+  NF_DROP		= 0
+  NF_ACCEPT		= 1
+  NF_STOLEN		= 2
+  NF_QUEUE		= 3
+  NF_REPEAT		= 4
+  NF_STOP		= 5
+
+  # linux/netfilter_ipv4/ip_queue.h
+  IPQ_COPY_NONE		= 0
+  IPQ_COPY_META		= 1
+  IPQ_COPY_PACKET	= 2
+  
+  IPQM_MODE		= 17
+  IPQM_VERDICT		= 18
+  IPQM_PACKET		= 19
+  IPQM_MAX		= 20
 end

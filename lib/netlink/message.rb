@@ -5,6 +5,9 @@ module Netlink
   EMPTY_STRING = "".freeze #:nodoc:
   EMPTY_ARRAY  = [].freeze #:nodoc:
 
+  NLMSGHDR_PACK = "LSSLL".freeze  # :nodoc:
+  NLMSGHDR_SIZE = [0,0,0,0,0].pack(NLMSGHDR_PACK).bytesize # :nodoc:
+
   # This is the base class from which all Netlink messages are derived.
   # To define a new Netlink message, make a subclass and then call the
   # "field" metaprogramming method to define the parts of the message, in
@@ -61,6 +64,19 @@ module Netlink
     define_type :short,   :pattern => "s_"
     define_type :int,     :pattern => "i"
     define_type :long,    :pattern => "l_"
+    define_type :ns,      :pattern => "n"
+    define_type :nl,      :pattern => "N"
+    
+    SIZE_T_SIZE = Integer(`echo __SIZEOF_SIZE_T__ | gcc -E -P -`) rescue 1.size
+    define_type :size_t,
+      case SIZE_T_SIZE
+      when 8
+        {:pattern => "Q"}
+      when 4
+        {:pattern => "L"}
+      else
+        raise "Bad size_t"
+      end
     define_type :binary,  :pattern => "a*", :default => EMPTY_STRING
     # cstring has \x00 terminator when sent over wire
     define_type :cstring, :pattern => "Z*", :default => EMPTY_STRING
@@ -181,6 +197,11 @@ module Netlink
       end
     end
 
+    # Skip pad byte(s) - default 1
+    def self.field_pad(count=nil)
+      self::FORMAT << "x#{count}" if count != 0
+    end
+    
     # Returns the packed binary representation of this message (without
     # header, and not padded to NLMSG_ALIGNTO bytes)
     def to_s
@@ -307,5 +328,18 @@ module Netlink
         ptr = Message.align(ptr + len) # assume NLMSG_ALIGNTO == NLA_ALIGNTO
       end
     end
+  end
+
+  # struct nlmsgerr
+  class Err < Message
+    code NLMSG_ERROR
+
+    field :error, :int
+    #field :msg, :pattern => NLMSGHDR_PACK
+    field :msg_len, :uint32
+    field :msg_type, :uint16
+    field :msg_flags, :uint16
+    field :msg_seq, :uint32
+    field :msg_pid, :uint32
   end
 end
