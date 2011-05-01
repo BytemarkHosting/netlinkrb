@@ -167,13 +167,21 @@ module Netlink
     end
 
     # Parse netlink packet in a string buffer. Yield header fields plus
-    # a Netlink::Message object (or nil) for each message.
+    # a Netlink::Message-derived object for each message. For unknown message
+    # types it will yield a raw String, or nil if there is no message body.
     def parse_yield(mesg) # :yields: type, flags, seq, pid, Message-or-nil
       dechunk(mesg) do |h_type, h_flags, h_seq, h_pid, data|
         klass = Message::CODE_TO_MESSAGE[h_type]
-        yield h_type, h_flags, h_seq, h_pid, klass && klass.parse(data)
+        yield h_type, h_flags, h_seq, h_pid,
+              if klass
+                klass.parse(data)
+              elsif data && data != EMPTY_STRING
+                data
+              else
+                nil
+              end
       end
-    end  
+    end
 
     # Parse netlink packet in a string buffer. Yield header and body
     # components for each message in turn.
