@@ -18,11 +18,15 @@ module Netlink
   # Use RtattrMessage instead for messages which are followed by variable rtattrs.
   class Message < CStruct
     # Map of numeric message type code => message class
+    # (TODO: should these be scoped to NETLINK_* protocol id?)
     CODE_TO_MESSAGE = {}
 
     # Define which message type code(s) to build using this structure
     def self.code(*codes)
-      codes.each { |code| CODE_TO_MESSAGE[code] = self }
+      codes.each do |code|
+        warn "Duplicate message code: #{code}" if CODE_TO_MESSAGE[code]
+        CODE_TO_MESSAGE[code] = self
+      end
     end
     
     NLMSG_ALIGNTO_1 = NLMSG_ALIGNTO-1 #:nodoc:
@@ -51,6 +55,8 @@ module Netlink
   # specify :pack and :unpack lambdas to do higher-level conversion
   # of field values.
   class RtattrMessage < Message
+    define_type :dev_name, :pattern=>"Z#{IFNAMSIZ}", :default=>EMPTY_STRING
+    
     # L2 addresses are presented as ASCII hex. You may optionally include
     # colons, hyphens or dots.
     #    IFInfo.new(:address => "00:11:22:33:44:55")   # this is OK

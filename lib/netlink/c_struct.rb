@@ -101,6 +101,11 @@ class CStruct
     end
   end
   
+  # This hook is called after unpacking from binary, and can be used
+  # for fixing up the data
+  def after_parse
+  end
+  
   def to_hash
     @attrs
   end
@@ -177,6 +182,7 @@ class CStruct
     data.unpack(self::FORMAT).zip(self::FIELDS).each do |val, key|
       obj[key] = val
     end
+    obj.after_parse
     obj
   end
 

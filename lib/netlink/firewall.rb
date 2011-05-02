@@ -16,14 +16,18 @@ module Netlink
     field :timestamp_sec, :long
     field :timestamp_usec, :long
     field :hook, :uint
-    field :indev_name, :pattern => "Z#{IFNAMSIZ}", :default => EMPTY_STRING
-    field :outdev_name, :pattern => "Z#{IFNAMSIZ}", :default => EMPTY_STRING
+    field :indev_name, :dev_name
+    field :outdev_name, :dev_name
     field :hw_protocol, :ns
     field :hw_type, :ushort
     field :hw_addrlen, :uchar
     field :hw_addr, :pattern => "a8", :default => EMPTY_STRING
     field :data_len, :size_t
-    field :payload, :binary 		# TODO: clip to data_len
+    field :payload, :binary
+    
+    def after_parse #:nodoc:
+      payload.slice!(data_len..-1) if payload.length > data_len
+    end
   end
 
   # struct ipq_verdict_msg

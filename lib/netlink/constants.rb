@@ -309,4 +309,8 @@ module Netlink
   IPQM_VERDICT		= 18
   IPQM_PACKET		= 19
   IPQM_MAX		= 20
+
+  # linux/netfilter_ipv4/ipt_ULOG.h
+  ULOG_MAC_LEN		= 80
+  ULOG_PREFIX_LEN	= 32
 end
