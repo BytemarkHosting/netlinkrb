@@ -48,6 +48,7 @@ module Netlink
     #   :seq => N (override initial sequence number)
     #   :pid => N (override PID)
     #   :timeout => N (seconds, default to DEFAULT_TIMEOUT. Pass nil for no timeout)
+    #   :junk_handler => lambda { ... } for unexpected packets
     def initialize(opt)
       @socket ||= opt[:socket] || ::Socket.new(
         Socket::AF_NETLINK,
@@ -58,6 +59,13 @@ module Netlink
       @seq = opt[:seq] || Time.now.to_i
       @pid = opt[:pid] || $$
       @timeout = opt.has_key?(:timeout) ? opt[:timeout] : DEFAULT_TIMEOUT
+      if opt.has_key?(:junk_handler)
+        @junk_handler = opt[:junk_handler]
+      elsif $VERBOSE
+        @junk_handler = lambda { |type, flags, seq, pid, msg|
+          warn "Discarding junk message (#{type}, #{flags}, #{seq}, #{pid}) #{msg.inspect}"
+        }
+      end
     end
 
     # Generate the next sequence number
@@ -108,6 +116,18 @@ module Netlink
       end
     end
 
+    # Send a command and wait for an Errno::NOERROR as confirmation. Raise
+    # an exception if any error message is returned, or on timeout.
+    #
+    # (Compare: rtnl_talk in lib/libnetlink.c, with answer=NULL)
+    def cmd(type, msg, flags=NLM_F_REQUEST, timeout=@timeout, sockaddr=SOCKADDR_DEFAULT)
+      send_request(type, msg, flags|NLM_F_ACK, sockaddr)
+      receive_responses(true, timeout) do |type,msg|
+        return if type == NLMSG_ERROR
+        false
+      end
+    end
+
     # Discard all waiting messages
     def drain
       while select([@socket], nil, nil, 0)
@@ -117,57 +137,72 @@ module Netlink
     end
 
     # Loop receiving responses until a DONE message is received (or you
-    # break out of the loop, or a timeout exception occurs). Filters out
-    # messages with unexpected pid and seq. If you pass an expected_type then
-    # messages other than this type will be discarded too.
+    # break out of the loop, or a timeout exception occurs).
     #
     # Yields Netlink::Message objects, or if no block is given, returns an
-    # array of those objects. If you provide a junk_handler then it will be
-    # called for discarded messages.
+    # array of those objects.
     #
     # (Compare: rtnl_dump_filter_l in lib/libnetlink.c)
-    def receive_until_done(expected_type=nil, timeout=@timeout, junk_handler=nil, &blk) #:yields: msg
+    def receive_until_done(expected_type=nil, timeout=@timeout, &blk) #:yields: msg
       res = []
-      blk ||= lambda { |msg| res << msg }
-      junk_handler ||= lambda { |type, flags, seq, pid, msg|
-        warn "Discarding junk message (#{type}, #{flags}, #{seq}, #{pid}) #{msg.inspect}" } if $VERBOSE
-      loop do
-        receive_response(timeout) do |type, flags, seq, pid, msg|
-          if pid != @pid || seq != @seq
-            junk_handler[type, flags, seq, pid, msg] if junk_handler
-            next
-          end
-          case type
-          when NLMSG_DONE
-            return res
-          when NLMSG_ERROR
-            raise ERRNO_MAP[-msg.error] || "Netlink Error: #{msg.inspect}"
-          end
-          if expected_type && type != expected_type
-            junk_handler[type, flags, seq, pid, msg] if junk_handler
-            next
-          end
+      blk ||= lambda { |obj| res << obj }
+      receive_responses(true, timeout) do |type,msg|
+        return res if type == NLMSG_DONE
+        if expected_type && type != expected_type
+          false
+        else
           blk.call(msg) if msg
         end
       end
     end
 
-    # Loop infinitely receiving messages of given type(s), ignoring pid and seq.
+    # Loop infinitely receiving responses and yielding message objects
+    # of the given type.
+    def receive_stream(expected_type=nil)
+      receive_responses(false, nil) do |type, msg|
+        if expected_type && type != expected_type
+          false
+        else
+          yield msg
+        end
+      end
+    end
+
+    # This is the main loop for receiving responses. It optionally checks
+    # the pid/seq of received messages, and discards those which don't match.
     # Raises an exception on NLMSG_ERROR.
-    def receive_stream(*expected_types)
+    #
+    # Matching messages are yielded to the block. If the block returns
+    # false then they are treated as junk.
+    def receive_responses(check_pid_seq=false, timeout=nil)
       loop do
-        receive_response(nil) do |type, flags, seq, pid, msg|
-          if expected_types.include?(type)
-            yield msg
-          elsif type == NLMSG_ERROR
-            raise ERRNO_MAP[-msg.error] || "Netlink Error: #{msg.inspect}"
-          else
-            warn "Received unexpected message type #{type}: #{msg.inspect}"
+        receive_response(timeout) do |type, flags, seq, pid, msg|
+          if !check_pid_seq || (pid == @pid && seq == @seq)
+            if type == NLMSG_ERROR && -msg.error != Errno::NOERROR::Errno
+              raise ERRNO_MAP[-msg.error] || "Netlink Error: #{msg.inspect}"
+            end
+            res = yield type, msg
+            next unless res == false
           end
+          @junk_handler[type, flags, seq, pid, msg] if @junk_handler
         end
       end
     end
     
+    # Receive one datagram from kernel. Validates the sender, and returns
+    # the raw binary message. Raises an exception on timeout or if the
+    # kernel closes the socket.
+    def recvmsg(timeout=@timeout)
+      if select([@socket], nil, nil, timeout)
+        mesg, sender, rflags, controls = @socket.recvmsg
+        raise EOFError unless mesg
+        NLSocket.check_sockaddr(sender.to_sockaddr)
+        mesg
+      else
+        raise "Timeout"
+      end
+    end
+
     # Receive one datagram from kernel. Yield header fields plus
     # Netlink::Message objects (maybe multiple times if the datagram
     # includes multiple netlink messages). Raise an exception if no
@@ -176,23 +211,16 @@ module Netlink
     #
     #   receive_response { |type, flags, seq, pid, msg| p msg }
     def receive_response(timeout=@timeout, &blk) # :yields: type, flags, seq, pid, Message
-      if select([@socket], nil, nil, timeout)
-        mesg, sender, rflags, controls = @socket.recvmsg
-        raise EOFError unless mesg
-        NLSocket.check_sockaddr(sender.to_sockaddr)
-        parse_yield(mesg, &blk)
-      else
-        raise "Timeout"
-      end
+      parse_yield(recvmsg(timeout), &blk)
     end
 
     # Parse netlink packet in a string buffer. Yield header fields plus
     # a Netlink::Message-derived object for each message. For unknown message
     # types it will yield a raw String, or nil if there is no message body.
     def parse_yield(mesg) # :yields: type, flags, seq, pid, Message-or-nil
-      dechunk(mesg) do |h_type, h_flags, h_seq, h_pid, data|
-        klass = Message::CODE_TO_MESSAGE[h_type]
-        yield h_type, h_flags, h_seq, h_pid,
+      dechunk(mesg) do |type, flags, seq, pid, data|
+        klass = Message::CODE_TO_MESSAGE[type]
+        yield type, flags, seq, pid,
               if klass
                 klass.parse(data)
               elsif data && data != EMPTY_STRING

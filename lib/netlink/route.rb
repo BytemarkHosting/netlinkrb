@@ -136,7 +136,7 @@ module Netlink
   end
 
   module Route
-    # This is the medium and high-level API using a NETLINK_ROUTE protocol socket
+    # This class formats and receives messages using NETLINK_ROUTE protocol
     class Socket < NLSocket
       def initialize(opt={})
         super(opt.merge(:protocol => Netlink::NETLINK_ROUTE))
@@ -208,10 +208,48 @@ module Netlink
       # Download a list of addresses, grouped as {index=>[addr,addr], index=>[addr,addr]}
       def read_addrs_by_ifindex(opt=nil)
         res = read_addrs(opt).group_by { |obj| obj.index }
-        res.default = [].freeze
+        res.default = EMPTY_ARRAY
         res
       end
 
+      # Add an IP address to an interface
+      #
+      #    require 'netlink/route'
+      #    rt = Netlink::Route::Socket.new
+      #    rt.add_ipaddr(:index=>"eth0", :local=>"1.2.3.4", :prefixlen=>24)
+      def add_addr(opt)
+        ipaddr_modify(RTM_NEWADDR, NLM_F_CREATE|NLM_F_EXCL, opt)
+      end
+
+      def change_addr(opt)
+        ipaddr_modify(RTM_NEWADDR, NLM_F_REPLACE, opt)
+      end
+      
+      def replace_addr(opt)
+        ipaddr_modify(RTM_NEWADDR, NLM_F_CREATE|NLM_F_REPLACE, opt)
+      end
+      
+      # Delete an IP address from an interface. Pass in either a hash of
+      # parameters, or an existing IFAddr object.
+      def delete_addr(opt)
+        ipaddr_modify(RTM_DELADDR, 0, opt)
+      end
+      
+      def ipaddr_modify(code, flags, msg) #:nodoc:
+        msg = IFAddr.new(msg)
+        case msg.index
+        when nil
+          raise "Device index must be specified"
+        when String
+          msg.index = linkindex(msg.index)
+        end
+        msg.address ||= msg.local
+        # Note: IPAddr doesn't support addresses off the subnet base,
+        # so there's no point trying to set msg.prefixlen from the IPAddr mask
+        cmd code, msg, flags|NLM_F_REQUEST
+        clear_cache
+      end
+      
       # Clear the memoization cache
       def clear_cache
         @links = nil
@@ -236,6 +274,21 @@ module Netlink
           links.each { |link| h[link.index] = h[link.ifname] = link }
           h
         )
+      end
+      
+      # Convert a link index to a (String) name, or nil.
+      #
+      #    rt.routes[Socket::AF_INET].each do |route|
+      #      puts "iif=#{rt.linkname(route.iif)}"
+      #      puts "oif=#{rt.linkname(route.oif)}"
+      #    end
+      def linkname(x)
+        link[x] && link[x].ifname
+      end
+      
+      # Convert a link name to an (Integer) index, or nil.
+      def linkindex(x)
+        link[x] && link[x].index
       end
       
       # Return the memoized address table, keyed by interface name and
