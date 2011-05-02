@@ -5,6 +5,29 @@ This library provides an API for using a Linux Netlink socket, for doing
 things like manipulating IP interfaces, routes and firewall rules
 programmatically.
 
+Code organisation
+=================
+
+There are separate classes for each Netlink protocol providing a high-level
+API. These all in turn use the NLSocket class, which has methods for adding
+the headers to messages and sending them over a socket. The messages
+themselves are built using class Message or RtattrMessage, which in turn are
+subclasses of CStruct, which performs the low-level packing and unpacking of
+the message bodies.
+
+     Route  Firewall  ...etc
+       |       |       |
+       +-------+-------+
+               |
+               v
+            NLSocket
+               |
+               v
+    Message / RtattrMessage
+               |
+               v
+            CStruct
+
 Useful reference material
 =========================
 
@@ -41,6 +64,8 @@ TODO
 ====
 
 * Exception hierarchy
+* Unit tests
+* Integration tests
 
 Copyright
 =========

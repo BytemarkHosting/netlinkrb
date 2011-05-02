@@ -1,4 +1,4 @@
-require 'cstruct'
+require 'netlink/c_struct'
 require 'netlink/constants'
 require 'ipaddr'
 
@@ -6,8 +6,8 @@ module Netlink
   NLMSGHDR_PACK = "LSSLL".freeze  # :nodoc:
   NLMSGHDR_SIZE = [0,0,0,0,0].pack(NLMSGHDR_PACK).bytesize # :nodoc:
 
-  EMPTY_STRING = Cstruct::EMPTY_STRING #:nodoc:
-  EMPTY_ARRAY  = Cstruct::EMPTY_ARRAY  #:nodoc:
+  EMPTY_STRING = "".freeze #:nodoc:
+  EMPTY_ARRAY  = [].freeze #:nodoc:
 
   # This is the base class from which all Netlink messages are derived.
   # To define a new Netlink message, make a subclass and then call the
@@ -16,7 +16,7 @@ module Netlink
   # types are to be built using this structure.
   #
   # Use RtattrMessage instead for messages which are followed by variable rtattrs.
-  class Message < Cstruct
+  class Message < CStruct
     # Map of numeric message type code => message class
     CODE_TO_MESSAGE = {}
 
