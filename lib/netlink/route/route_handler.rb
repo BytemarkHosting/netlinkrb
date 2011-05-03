@@ -25,25 +25,31 @@ module Netlink
     rtattr :gateway, RTA_GATEWAY, :l3addr
     rtattr :priority, RTA_PRIORITY, :uint32
     rtattr :prefsrc, RTA_PREFSRC, :l3addr
-    # Route metrics are themselves packed using the rtattr format.
-    # In the kernel, the dst.metrics structure is an array of u32.
-    METRIC_PACK = "SSL".freeze #:nodoc:
-    METRIC_SIZE = [0,0,0].pack(METRIC_PACK).bytesize #:nodoc:
-    rtattr :metrics, RTA_METRICS,		# {RTAX_* => Integer}
-        :pack   => lambda { |metrics,obj|
-          metrics.map { |code,val| [METRIC_SIZE,code,val].pack(METRIC_PACK) }.join
-        },
-        :unpack => lambda { |str,obj|
-          res = {}
-          RtattrMessage.unpack_rtattr(str) { |code,val| res[code] = val.unpack("L").first }
-          res
-        }
+    rtattr :metrics, RTA_METRICS,
+      :unpack => lambda { |str,obj| RTAMetrics.parse(str) }
     rtattr :multipath, RTA_MULTIPATH
     rtattr :flow, RTA_FLOW
     rtattr :cacheinfo, RTA_CACHEINFO,
         :pack   => lambda { |val,obj| val.to_a.pack("L*") },
         :unpack => lambda { |str,obj| RTACacheInfo.new(*(str.unpack("L*"))) }
     rtattr :table2, RTA_TABLE, :uint32   # NOTE: table in two places!
+  end
+
+  class RTAMetrics < RtattrMessage
+    rtattr :lock,	RTAX_LOCK,	:uint32
+    rtattr :mtu,	RTAX_MTU,	:uint32
+    rtattr :window,	RTAX_WINDOW,	:uint32
+    rtattr :rtt,	RTAX_RTT,	:uint32
+    rtattr :rttvar,	RTAX_RTTVAR,	:uint32
+    rtattr :ssthresh,	RTAX_SSTHRESH,	:uint32
+    rtattr :cwnd,	RTAX_CWND,	:uint32
+    rtattr :advmss,	RTAX_ADVMSS,	:uint32
+    rtattr :reordering,	RTAX_REORDERING, :uint32
+    rtattr :hoplimit,	RTAX_HOPLIMIT,	:uint32
+    rtattr :initcwnd,	RTAX_INITCWND,	:uint32
+    rtattr :features,	RTAX_FEATURES,	:uint32
+    rtattr :rto_min,	RTAX_RTO_MIN,	:uint32
+    rtattr :initrwnd,	RTAX_INITRWND,	:uint32
   end
 
   module Route
