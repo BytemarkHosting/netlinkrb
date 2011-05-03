@@ -138,6 +138,15 @@ module Netlink
       def delete(opt)
         iproute_modify(RTM_DELROUTE, 0, opt)
       end
+
+      # Get route matching given criteria
+      def get(msg)
+        msg = RT.new(msg)
+        raise "Missing :dst" unless msg.dst
+        msg.iif = index(msg.iif) if msg.iif.is_a?(String)
+        msg.oif = index(msg.oif) if msg.oif.is_a?(String)
+        @rtsocket.cmd RTM_GETROUTE, msg, NLM_F_REQUEST, RTM_NEWROUTE
+      end
       
       def iproute_modify(code, flags, msg) #:nodoc:
         msg = RT.new(msg)

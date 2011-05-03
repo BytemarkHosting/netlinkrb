@@ -128,10 +128,10 @@ module Netlink
     # an exception if any error message is returned, or on timeout.
     #
     # (Compare: rtnl_talk in lib/libnetlink.c, with answer=NULL)
-    def cmd(type, msg, flags=NLM_F_REQUEST, timeout=@timeout, sockaddr=SOCKADDR_DEFAULT)
+    def cmd(type, msg, flags=NLM_F_REQUEST, resp_type=NLMSG_ERROR, timeout=@timeout, sockaddr=SOCKADDR_DEFAULT)
       send_request(type, msg, flags|NLM_F_ACK, sockaddr)
       receive_responses(true, timeout) do |type,msg|
-        return if type == NLMSG_ERROR
+        return msg if type == resp_type
         false
       end
     end

@@ -22,3 +22,6 @@ pp rt.routes.list(:family=>Socket::AF_INET, :table=>Netlink::RT_TABLE_MAIN).to_a
 puts "\nDefault route is probably:"
 pp rt.routes.list(:family=>Socket::AF_INET, :table=>Netlink::RT_TABLE_MAIN).
   min_by { |route| route.dst_len }
+
+puts "\nTraffic to 192.168.1.1 goes out via:"
+puts rt.ifname(rt.routes.get(:dst=>"192.168.1.1").oif)
