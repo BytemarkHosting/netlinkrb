@@ -65,9 +65,11 @@ class CStruct
   define_type :uchar,   :pattern => "C"
   define_type :uint16,  :pattern => "S",  :align => true
   define_type :uint32,  :pattern => "L",  :align => true
+  define_type :uint64,  :pattern => "Q",  :align => true
   define_type :char,    :pattern => "c"
   define_type :int16,   :pattern => "s",  :align => true
   define_type :int32,   :pattern => "l",  :align => true
+  define_type :int64,   :pattern => "q",  :align => true
   define_type :ushort,  :pattern => "S_", :align => true
   define_type :uint,    :pattern => "I",  :align => true
   define_type :ulong,   :pattern => "L_", :align => true

@@ -3,6 +3,8 @@ class Socket
   # From bits/socket.h
   PF_NETLINK		= 16		unless defined? Socket::PF_NETLINK
   AF_NETLINK		= PF_NETLINK	unless defined? Socket::AF_NETLINK
+  # From in.h
+  IPPROTO_IPV6		= 41		unless defined? Socket::IPPROTO_IPV6
 end
 
 module Netlink
@@ -327,6 +329,20 @@ module Netlink
   NF_REPEAT		= 4
   NF_STOP		= 5
 
+  NF_INET_PRE_ROUTING	= 0
+  NF_INET_LOCAL_IN	= 1
+  NF_INET_FORWARD	= 2
+  NF_INET_LOCAL_OUT	= 3
+  NF_INET_POST_ROUTING	= 4
+  NF_INET_NUMHOOKS	= 5
+    
+  NFPROTO_UNSPEC	= 0
+  NFPROTO_IPV4		= 2
+  NFPROTO_ARP		= 3
+  NFPROTO_BRIDGE	= 7
+  NFPROTO_IPV6		= 10
+  NFPROTO_DECNET	= 12
+
   # linux/netfilter_ipv4/ip_queue.h
   IPQ_COPY_NONE		= 0
   IPQ_COPY_META		= 1
@@ -340,4 +356,41 @@ module Netlink
   # linux/netfilter_ipv4/ipt_ULOG.h
   ULOG_MAC_LEN		= 80
   ULOG_PREFIX_LEN	= 32
+  
+  # linux/netfilter/x_tables.h
+  XT_TABLE_MAXNAMELEN	= 32
+  
+  XT_CONTINUE		= 0xffffffff
+  XT_RETURN		= (-NF_REPEAT - 1)
+
+  XT_INV_PROTO		= 0x40
+  
+  # linux/netfilter_ipv4/ip_tables.h
+  IPT_TABLE_MAXNAMELEN	= XT_TABLE_MAXNAMELEN
+  
+  IPT_F_FRAG		= 0x01
+  IPT_F_GOTO		= 0x02
+  IPT_F_MASK		= 0x03
+  
+  IPT_INV_VIA_IN	= 0x01
+  IPT_INV_VIA_OUT	= 0x02
+  IPT_INV_TOS		= 0x04
+  IPT_INV_SRCIP		= 0x08
+  IPT_INV_DSTIP		= 0x10
+  IPT_INV_FRAG		= 0x20
+  IPT_INV_PROTO		= XT_INV_PROTO
+  IPT_INV_MASK		= 0x7f
+  
+  IPT_BASE_CTL			= 64
+
+  IPT_SO_SET_REPLACE		= IPT_BASE_CTL
+  IPT_SO_SET_ADD_COUNTERS	= IPT_BASE_CTL + 1
+  
+  IPT_SO_GET_INFO		= IPT_BASE_CTL
+  IPT_SO_GET_ENTRIES		= IPT_BASE_CTL + 1
+  IPT_SO_GET_REVISION_MATCH	= IPT_BASE_CTL + 2
+  IPT_SO_GET_REVISION_TARGET	= IPT_BASE_CTL + 3
+  
+  IPT_CONTINUE			= XT_CONTINUE
+  IPT_RETURN			= XT_RETURN
 end
