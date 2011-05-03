@@ -40,7 +40,7 @@ module Netlink
       end
 
       # Convert an interface index into name string, or nil if the
-      # index is nil or empty string. Raises exception for unknown values.
+      # index is nil or 0. Raises exception for unknown values.
       #
       #    nl = Netlink::Route::Socket.new
       #    nl.routes(:family=>Socket::AF_INET) do |route|

@@ -96,7 +96,7 @@ class CStruct
     if h.instance_of?(self.class)
       @attrs = h.to_hash.dup
     else
-      @attrs = self.class::DEFAULTS.dup
+      @attrs = {}
       h.each { |k,v| self[k] = v } if h
     end
   end
@@ -153,7 +153,7 @@ class CStruct
     self::DEFAULTS[name] = default
 
     define_method name do
-      @attrs.fetch name
+      @attrs[name]
     end
     define_method "#{name}=" do |val|
       @attrs.store name, val
@@ -170,7 +170,7 @@ class CStruct
   
   # Returns the packed binary representation of this structure
   def to_str
-    self.class::FIELDS.map { |key| self[key] }.pack(self.class::FORMAT)
+    self.class::FIELDS.map { |key| self[key] || self.class::DEFAULTS[key] }.pack(self.class::FORMAT)
   end
 
   def inspect
