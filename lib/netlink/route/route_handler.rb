@@ -56,7 +56,7 @@ module Netlink
     # This class manipulates the kernel routing table
     class RouteHandler < Handler
       def clear_cache
-        @routes = nil
+        @route = nil
       end
       
       # Send message to download the kernel routing table. Either returns an
@@ -64,10 +64,10 @@ module Netlink
       #
       # A hash of kernel options may be supplied, but you might also have
       # to perform your own filtering. e.g.
-      #   read_routes(:family=>Socket::AF_INET)           # works
-      #   read_routes(:protocol=>Netlink::RTPROT_STATIC)  # ignored
+      #   read_route(:family=>Socket::AF_INET)           # works
+      #   read_route(:protocol=>Netlink::RTPROT_STATIC)  # ignored
       #
-      #   res = rt.routes.read_routes(:family => Socket::AF_INET)
+      #   res = ip.route.read_route(:family => Socket::AF_INET)
       #   p res
       #   [#<Netlink::RT {:family=>2, :dst_len=>32, :src_len=>0, :tos=>0,
       #    :table=>255, :protocol=>2, :scope=>253, :type=>3, :flags=>0, :table2=>255,
@@ -80,7 +80,7 @@ module Netlink
       #   [#<Netlink::RT {:family=>2, :dst_len=>0, :src_len=>0, :tos=>0,
       #    :table=>254, :protocol=>4, :scope=>0, :type=>1, :flags=>0, :table2=>254,
       #    :gateway=>#<IPAddr: IPv4:10.69.255.253/255.255.255.255>, :oif=>2}>, ...]
-      def read_routes(opt=nil, &blk)
+      def read_route(opt=nil, &blk)
         @rtsocket.send_request RTM_GETROUTE, RT.new(opt),
                      NLM_F_ROOT | NLM_F_MATCH | NLM_F_REQUEST
         @rtsocket.receive_until_done(RTM_NEWROUTE, &blk)
@@ -110,10 +110,10 @@ module Netlink
       #    :oif => "eth0"
       #    :iif => "eth1"
       def list(filter=nil, &blk)
-        @routes ||= read_routes
+        @route ||= read_route
         filter[:oif] = index(filter[:oif]) if filter && filter.has_key?(:oif)
         filter[:iif] = index(filter[:iif]) if filter && filter.has_key?(:iif)
-        do_list(@routes, filter, &blk)
+        do_list(@route, filter, &blk)
       end
       alias :each :list
       

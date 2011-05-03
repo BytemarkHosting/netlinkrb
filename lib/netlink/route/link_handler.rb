@@ -122,14 +122,14 @@ module Netlink
     # you should create a new instance of this object.
     class LinkHandler < Handler
       def clear_cache
-        @links = nil
+        @link = nil
         @linkmap = nil
       end
 
       # Download a list of links (interfaces). Either returns an array of
       # Netlink::IFInfo objects, or yields them to the supplied block.
       #
-      #   res = rt.links.read_links
+      #   res = ip.link.read_link
       #   p res
       #   [#<Netlink::IFInfo {:family=>0, :type=>772, :index=>1,
       #    :flags=>65609, :change=>0, :ifname=>"lo", :txqlen=>0, :operstate=>0,
@@ -137,7 +137,7 @@ module Netlink
       #    :address=>"\x00\x00\x00\x00\x00\x00", :broadcast=>"\x00\x00\x00\x00\x00\x00",
       #    :stats32=>#<struct Netlink::LinkStats rx_packets=22, ...>,
       #    :stats64=>#<struct Netlink::LinkStats rx_packets=22, ...>}>, ...]
-      def read_links(opt=nil, &blk)
+      def read_link(opt=nil, &blk)
         @rtsocket.send_request RTM_GETLINK, IFInfo.new(opt),
                      NLM_F_ROOT | NLM_F_MATCH | NLM_F_REQUEST
         @rtsocket.receive_until_done(RTM_NEWLINK, &blk)
@@ -157,16 +157,16 @@ module Netlink
       # The full interface list is read once and memoized, so
       # it is efficient to call this method multiple times.
       #
-      #    rt.links.list { |x| p x }
-      #    ethers = rt.links.list(:type => Netlink::ARPHRD_ETHER).to_a
-      #    vlans = rt.links.list(:kind => "vlan").to_a
-      #    rt.links.list(:flags => Netlink::IFF_RUNNING)
-      #    rt.links.list(:noflags => Netlink::IFF_POINTOPOINT)
-      #    rt.links.list(:link => "lo")   # vlan etc attached to this interface
+      #    ip.link.list { |x| p x }
+      #    ethers = ip.link.list(:type => Netlink::ARPHRD_ETHER).to_a
+      #    vlans = ip.link.list(:kind => "vlan").to_a
+      #    ip.link.list(:flags => Netlink::IFF_RUNNING)
+      #    ip.link.list(:noflags => Netlink::IFF_POINTOPOINT)
+      #    ip.link.list(:link => "lo")   # vlan etc attached to this interface
       def list(filter=nil, &blk)
-        @links ||= read_links
+        @link ||= read_link
         filter[:link] = index(filter[:link]) if filter && filter.has_key?(:link)
-        do_list(@links, filter, &blk)
+        do_list(@link, filter, &blk)
       end
       alias :each :list
             
@@ -188,8 +188,8 @@ module Netlink
       # Add an interface (raw). e.g.
       #
       #    require 'netlink/route'
-      #    rt = Netlink::Route::Socket.new
-      #    rt.links.add_link(
+      #    ip = Netlink::Route::Socket.new
+      #    ip.link.add(
       #        :link=>"lo",
       #        :linkinfo=>Netlink::LinkInfo.new(
       #            :kind=>"vlan",

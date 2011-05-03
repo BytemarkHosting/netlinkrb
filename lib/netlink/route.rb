@@ -20,23 +20,23 @@ module Netlink
       end
 
       # Return a Netlink::Route::LinkHandler object for manipulating links
-      def links
-        @links ||= Netlink::Route::LinkHandler.new(self)
+      def link
+        @link ||= Netlink::Route::LinkHandler.new(self)
       end
       
       # Return a Netlink::Route::VlanHandler object for manipulating vlans
-      def vlans
-        @vlans ||= Netlink::Route::VlanHandler.new(self)
+      def vlan
+        @vlan ||= Netlink::Route::VlanHandler.new(self)
       end
       
       # Return a Netlink::Route::AddrHandler object for manipulating addresses
-      def addrs
-        @addrs ||= Netlink::Route::AddrHandler.new(self)
+      def addr
+        @addr ||= Netlink::Route::AddrHandler.new(self)
       end
       
       # Return a Netlink::Route::RT object for manipulating routes
-      def routes
-        @routes ||= Netlink::Route::RouteHandler.new(self)
+      def route
+        @route ||= Netlink::Route::RouteHandler.new(self)
       end
 
       # Convert an interface index into name string, or nil if the
@@ -49,7 +49,7 @@ module Netlink
       #    end
       def ifname(index)
         return nil if index.nil? || index == 0
-        links[index].ifname
+        link[index].ifname
       end
       
       # Convert an interface name into index. Returns 0 for nil or empty
@@ -61,7 +61,7 @@ module Netlink
         when nil, EMPTY_STRING
           0
         else
-          links[name].index
+          link[name].index
         end
       end
     end

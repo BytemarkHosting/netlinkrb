@@ -29,7 +29,7 @@ module Netlink
     # This class provides an API for manipulating iaddresses.
     class AddrHandler < Handler
       def clear_cache
-        @addrs = nil
+        @addr = nil
       end
       
       # Download a list of link addresses. Either returns an array of
@@ -39,12 +39,12 @@ module Netlink
       # A hash of kernel options may be supplied, but likely only :family
       # is honoured.
       #
-      #   res = nl.read_addrs(:family => Socket::AF_INET)
+      #   res = nl.read_addr(:family => Socket::AF_INET)
       #   p res
       #   [#<Netlink::IFAddr {:family=>2, :prefixlen=>8, :flags=>128, :scope=>254,
       #    :index=>1, :address=>#<IPAddr: IPv4:127.0.0.1/255.255.255.255>,
       #    :local=>#<IPAddr: IPv4:127.0.0.1/255.255.255.255>, :label=>"lo"}>, ...]
-      def read_addrs(opt=nil, &blk)
+      def read_addr(opt=nil, &blk)
         @rtsocket.send_request RTM_GETADDR, IFAddr.new(opt),
                      NLM_F_ROOT | NLM_F_MATCH | NLM_F_REQUEST
         @rtsocket.receive_until_done(RTM_NEWADDR, &blk)
@@ -64,22 +64,22 @@ module Netlink
       # The full address list is read once and memoized, so
       # it is efficient to call this method multiple times.
       #
-      #    nl.addrs.list { |x| p x }
-      #    addrs_eth0 = nl.addrs.list(:index=>"eth0").to_a
-      #    addrs_eth0_v4 = nl.addrs.list(:index=>"eth0", :family=>Socket::AF_INET).to_a
+      #    nl.addr.list { |x| p x }
+      #    addrs_eth0 = nl.addr.list(:index=>"eth0").to_a
+      #    addrs_eth0_v4 = nl.addr.list(:index=>"eth0", :family=>Socket::AF_INET).to_a
       def list(filter=nil, &blk)
-        @addrs ||= read_addrs
+        @addr ||= read_addr
         filter[:index] = index(filter[:index]) if filter && filter.has_key?(:index)
-        do_list(@addrs, filter, &blk)
+        do_list(@addr, filter, &blk)
       end
       alias :each :list
       
       # Return addresses grouped by interface name. e.g.
-      #    addrs_by_interface(:family => Socket::AF_INET).to_a
+      #    group_by_interface(:family => Socket::AF_INET).to_a
       #    #=> {"eth0"=>[addr, addr,...], "lo"=>[addr, addr,...]
       #
       # The hash has an empty array as its default, so it's safe to do
-      #    addrs_by_interface(...)["eth0"].each { |a| ... }
+      #    group_by_interface(...)["eth0"].each { |a| ... }
       # even if eth0 has no addresses matching the given filter.
       def group_by_interface(*filter)
         res = list(*filter).group_by { |a| ifname(a.index) }
@@ -90,8 +90,8 @@ module Netlink
       # Add an IP address to an interface
       #
       #    require 'netlink/route'
-      #    rt = Netlink::Route::Socket.new
-      #    rt.add(:index=>"eth0", :local=>"1.2.3.4", :prefixlen=>24)
+      #    ip = Netlink::Route::Socket.new
+      #    ip.addr.add(:index=>"eth0", :local=>"1.2.3.4", :prefixlen=>24)
       def add(opt)
         ipaddr_modify(RTM_NEWADDR, NLM_F_CREATE|NLM_F_EXCL, opt)
       end

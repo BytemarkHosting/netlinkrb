@@ -9,7 +9,7 @@ module Netlink
       end
       
       def list(filter={}, &blk)
-        @rtsocket.links.list(filter.merge(:kind=>"vlan"))
+        @rtsocket.link.list(filter.merge(:kind=>"vlan"))
       end
       alias :each :list
             
@@ -21,19 +21,19 @@ module Netlink
       #      :vlan_mask=>0xffffffff
       #    )
       def add(opt)
-        @rtsocket.links.add(vlan_options(opt))
+        @rtsocket.link.add(vlan_options(opt))
       end
       
       def change(opt)
-        @rtsocket.links.change(vlan_options(opt))
+        @rtsocket.link.change(vlan_options(opt))
       end
       
       def replace(opt)
-        @rtsocket.links.replace(vlan_options(opt))
+        @rtsocket.link.replace(vlan_options(opt))
       end
       
       # Delete vlan given :link and :vlan_id. If you want to delete
-      # by :index then call links.delete instead.
+      # by :index then call link.delete instead.
       def delete(opt)
         raise "Missing vlan_id" unless opt[:vlan_id]
         raise "Missing link" unless opt[:link]
@@ -42,7 +42,7 @@ module Netlink
             l.linkinfo.data.id == opt[:vlan_id]
         }
         raise Errno::ENODEV unless link
-        @rtsocket.links.delete(link.index)
+        @rtsocket.link.delete(link.index)
       end
 
       def vlan_options(orig) #:nodoc:
