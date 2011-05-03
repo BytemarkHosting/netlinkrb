@@ -22,11 +22,11 @@ module Netlink
   class IFInfo < RtattrMessage
     code RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK
 
-    field :family, :uchar			# Socket::AF_*
+    field :family, :uchar
     field :type, :ushort			# ARPHRD_*
     field :index, :int
     field :flags, :uint				# IFF_*
-    field :change, :uint, :default=>0xffffffff
+    field :change, :uint, :default=>0xffffffff	# flags to change
     rtattr :address, IFLA_ADDRESS, :l2addr
     rtattr :broadcast, IFLA_BROADCAST, :l2addr
     rtattr :ifname, IFLA_IFNAME, :cstring
@@ -142,12 +142,7 @@ module Netlink
     # Since we frequently need to map ifname to ifindex, or vice versa,
     # we keep a memoized list of interfaces. If the interface list changes,
     # you should create a new instance of this object.
-    #
-    # The object is Enumerable, so you can iterate over it directly
-    # (which will iterate over the interfaces, but not the addresses)
     class IFHandler
-      include Enumerable
-      
       def initialize(nlsocket = Netlink::Route::Socket.new)
         @nlsocket = nlsocket
         clear_link_cache
@@ -205,21 +200,37 @@ module Netlink
         res
       end
 
-      # Return memoized list of all interfaces
-      def links
+      # Iterate over all interfaces, or interfaces matching the given
+      # criteria. Returns an Enumerator if no block given.
+      #
+      # The full interface list is read once and memoized, so
+      # it is efficient to call this method multiple times.
+      #
+      #    if.links { |x| p x }
+      #    ethers = if.links(:type => Netlink::ARPHRD_ETHER).to_a
+      #    vlans = if.links(:kind => "vlan").to_a
+      #    if.links(:flags => Netlink::IFF_RUNNING)
+      #    if.links(:noflags => Netlink::IFF_POINTOPOINT)
+      #    if.links(:link => "lo")   # vlan etc attached to this interface
+      def links(filter=nil, &blk)
+        return to_enum(:links, filter) unless block_given?
         @links ||= read_links
-      end
-      
-      # Iterate over all interfaces
-      def each(&blk)
-        links.each(&blk)
+        return @links.each(&blk) unless filter
+        filter[:link] = index(filter[:link]) if filter.has_key?(:link)
+        @links.each do |l|
+          yield l if (!filter[:type] || l.type == filter[:type]) &&
+          (!filter[:kind] || l.kind?(filter[:kind])) &&
+          (!filter[:flags] || (l.flags & filter[:flags]) == filter[:flags]) &&
+          (!filter[:noflags] || (l.flags & filter[:noflags]) == 0) &&
+          (!filter[:link] || l.link == filter[:link])
+        end
       end
             
       # Return a memoized Hash of interfaces, keyed by both index and name
       def linkmap
         @linkmap ||= (
           h = {}
-          each { |link| h[link.index] = h[link.ifname] = link }
+          links { |link| h[link.index] = h[link.ifname] = link }
           h
         )
       end
@@ -246,15 +257,31 @@ module Netlink
       # Convert an interface name into index. Returns 0 for nil or empty
       # string. Otherwise raises an exception for unknown values.
       def index(name)
-        return 0 if name.nil? || name == EMPTY_STRING
-        self[name].index
+        case name
+        when Integer
+          name
+        when nil, EMPTY_STRING
+          0
+        else
+          self[name].index
+        end
       end
 
-      # Add an interface
+      # Add an interface (low-level)
       #
       #    require 'netlink/route'
       #    rt = Netlink::Route::Socket.new
-      #    rt.if.add_link(:type=>, :index=>"eth0")
+      #    rt.if.add_link(
+      #        :link=>"lo",
+      #        :linkinfo=>Netlink::LinkInfo.new(
+      #            :kind=>"vlan",
+      #            :data=>Netlink::VlanInfo.new(
+      #                :id=>1234,
+      #                :flags => Netlink::VlanFlags.new(
+      #                    :flags=>Netlink::VLAN_FLAG_LOOSE_BINDING,
+      #                    :mask=>0xffffffff
+      #    ))))
+                      
       def add_link(opt)
         iplink_modify(RTM_NEWLINK, NLM_F_CREATE|NLM_F_EXCL, opt)
       end
@@ -285,6 +312,8 @@ module Netlink
         if (flags & NLM_F_CREATE) != 0
           raise "Missing :linkinfo" unless msg.linkinfo
           raise "Missing :kind" unless msg.linkinfo.kind
+        else
+          raise "Missing :index" if msg.index.nil? || msg.index == 0
         end
         
         msg.index = index(msg.index) if msg.index.is_a?(String)
@@ -294,6 +323,54 @@ module Netlink
         clear_link_cache
       end
 
+      # Higher-level API to manipulate VLAN interface.
+      #    rt.if.add_vlan(
+      #      :link=>"lo",
+      #      :vlan_id=>1234,
+      #      :vlan_flags=>Netlink::VLAN_FLAG_LOOSE_BINDING,
+      #      :vlan_mask=>0xffffffff
+      #    )
+      def add_vlan(opt)
+        add_link(vlan_options(opt))
+      end
+      
+      def change_vlan(opt)
+        change_link(vlan_options(opt))
+      end
+      
+      def replace_vlan(opt)
+        replace_link(vlan_options(opt))
+      end
+      
+      # Delete vlan given :link and :vlan_id. If you want to delete
+      # by :index then call delete_link instead.
+      def delete_vlan(opt)
+        raise "Missing vlan_id" unless opt[:vlan_id]
+        raise "Missing link" unless opt[:link]
+        link = links(:kind=>"vlan", :link=>opt[:link]).find { |l|
+            l.linkinfo.data &&
+            l.linkinfo.data.id == opt[:vlan_id]
+        }
+        raise Errno::ENODEV unless link
+        delete_link(link.index)
+      end
+
+      def vlan_options(orig) #:nodoc:
+        opt = orig.dup
+        opt[:link] = index(opt.fetch(:link))
+        li = opt[:linkinfo] ||= LinkInfo.new
+        li.kind = "vlan"
+        li.data ||= VlanInfo.new
+        li.data.id = opt.delete(:vlan_id) if opt.has_key?(:vlan_id)
+        if opt.has_key?(:vlan_flags)
+          li.data.flags ||= VlanFlags.new(:flags => opt.delete(:vlan_flags))
+          li.data.flags.mask = opt.delete(:vlan_mask) if opt.has_key?(:vlan_mask)
+        end
+        li.data.egress_qos = opt.delete(:egress_qos) if opt.has_key?(:egress_qos)
+        li.data.ingress_qos = opt.delete(:ingress_qos) if opt.has_key?(:ingress_qos)
+        opt
+      end
+      
       # Return the memoized address table, keyed by interface name and
       # address family, containing an array of addresses for each
       # interface/family combination. i.e.
@@ -306,7 +383,7 @@ module Netlink
       def addrs
         @addrs ||= (
           h = {}
-          links.each do |link|
+          links do |link|
             h[link.ifname] = {}
           end
           read_addrs.each do |addr|
