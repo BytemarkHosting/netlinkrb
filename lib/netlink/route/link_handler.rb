@@ -1,4 +1,5 @@
 require 'netlink/route'
+require 'netlink/route/handler'
 
 module Netlink
   # struct rtnl_link_stats / rtnl_link_stats64
@@ -119,21 +120,12 @@ module Netlink
     # Since we frequently need to map ifname to ifindex, or vice versa,
     # we keep a memoized list of interfaces. If the interface list changes,
     # you should create a new instance of this object.
-    class LinkHandler
-      def initialize(rtsocket = Netlink::Route::Socket.new)
-        @rtsocket = rtsocket
-        clear_cache
-      end
-
+    class LinkHandler < Handler
       def clear_cache
         @links = nil
         @linkmap = nil
       end
 
-      def index(v)
-        @rtsocket.index(v)
-      end
-            
       # Download a list of links (interfaces). Either returns an array of
       # Netlink::IFInfo objects, or yields them to the supplied block.
       #
@@ -150,7 +142,15 @@ module Netlink
                      NLM_F_ROOT | NLM_F_MATCH | NLM_F_REQUEST
         @rtsocket.receive_until_done(RTM_NEWLINK, &blk)
       end
-
+      
+      class Filter < BaseFilter #:nodoc:
+        filter(:type) { |o,v| o.type == v }
+        filter(:kind) { |o,v| o.kind?(v) }
+        filter(:flags) { |o,v| (o.flags & v) == v }
+        filter(:noflags) { |o,v| (o.flags & v) == 0 }
+        filter(:link) { |o,v| o.link == v }
+      end
+      
       # Iterate over all interfaces, or interfaces matching the given
       # criteria. Returns an Enumerator if no block given.
       #
@@ -165,16 +165,8 @@ module Netlink
       #    rt.links.list(:link => "lo")   # vlan etc attached to this interface
       def list(filter=nil, &blk)
         @links ||= read_links
-        return @links.each(&blk) unless filter
-        return to_enum(:list, filter) unless block_given?
-        filter[:link] = index(filter[:link]) if filter.has_key?(:link)
-        @links.each do |o|
-          yield o if (!filter[:type] || o.type == filter[:type]) &&
-          (!filter[:kind] || o.kind?(filter[:kind])) &&
-          (!filter[:flags] || (o.flags & filter[:flags]) == filter[:flags]) &&
-          (!filter[:noflags] || (o.flags & filter[:noflags]) == 0) &&
-          (!filter[:link] || o.link == filter[:link])
-        end
+        filter[:link] = index(filter[:link]) if filter && filter.has_key?(:link)
+        do_list(@links, filter, &blk)
       end
       alias :each :list
             

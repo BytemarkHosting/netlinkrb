@@ -16,7 +16,7 @@ pp rt.links["eth0"]
 puts "\nAddresses on interface eth0:"
 pp rt.addrs.list(:index=>"eth0").to_a
 
-puts "\nAll routes in main routing table:"
+puts "\nAll v4 routes in main routing table:"
 pp rt.routes.list(:family=>Socket::AF_INET, :table=>Netlink::RT_TABLE_MAIN).to_a
 
 puts "\nDefault route is probably:"

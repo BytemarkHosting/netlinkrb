@@ -1,4 +1,5 @@
 require 'netlink/route'
+require 'netlink/route/handler'
 
 module Netlink
   # struct ifa_cacheinfo
@@ -25,28 +26,12 @@ module Netlink
   end
 
   module Route
-    # This class provides an API for manipulating interfaces and addresses.
-    # Since we frequently need to map ifname to ifindex, or vice versa,
-    # we keep a memoized list of interfaces. If the interface list changes,
-    # you should create a new instance of this object.
-    class AddrHandler
-      def initialize(rtsocket = Netlink::Route::Socket.new)
-        @rtsocket = rtsocket
-        clear_cache
-      end
-
+    # This class provides an API for manipulating iaddresses.
+    class AddrHandler < Handler
       def clear_cache
         @addrs = nil
       end
-
-      def index(v)
-        @rtsocket.index(v)
-      end
-
-      def ifname(v)
-        @rtsocket.ifname(v)
-      end
-                  
+      
       # Download a list of link addresses. Either returns an array of
       # Netlink::IFAddr objects, or yields them to the supplied block.
       # You will need to use the 'index' to cross reference to the interface.
@@ -65,6 +50,14 @@ module Netlink
         @rtsocket.receive_until_done(RTM_NEWADDR, &blk)
       end
 
+      class Filter < BaseFilter #:nodoc:
+        filter(:family) { |o,v| o.family == v }
+        filter(:scope) { |o,v| o.scope == scope }
+        filter(:flags) { |o,v| (o.flags & v) == v }
+        filter(:noflags) { |o,v| (o.flags & v) == 0 }
+        filter(:index) { |o,v| o.index == v }
+      end
+      
       # Iterate over all addresses, or addressees matching the given
       # criteria. Returns an Enumerator if no block given.
       #
@@ -74,20 +67,10 @@ module Netlink
       #    nl.addrs.list { |x| p x }
       #    addrs_eth0 = nl.addrs.list(:index=>"eth0").to_a
       #    addrs_eth0_v4 = nl.addrs.list(:index=>"eth0", :family=>Socket::AF_INET).to_a
-      #
-      # TODO: error on unknown filter conditions
       def list(filter=nil, &blk)
         @addrs ||= read_addrs
-        return @addrs.each(&blk) unless filter
-        return to_enum(:list, filter) unless block_given?
-        filter[:index] = index(filter[:index]) if filter.has_key?(:index)
-        @addrs.each do |o|
-          yield o if (!filter[:family] || o.family == filter[:family]) &&
-          (!filter[:scope] || o.kind?(filter[:scope])) &&
-          (!filter[:flags] || (o.flags & filter[:flags]) == filter[:flags]) &&
-          (!filter[:noflags] || (o.flags & filter[:noflags]) == 0) &&
-          (!filter[:index] || o.index == filter[:index])
-        end
+        filter[:index] = index(filter[:index]) if filter && filter.has_key?(:index)
+        do_list(@addrs, filter, &blk)
       end
       alias :each :list
       

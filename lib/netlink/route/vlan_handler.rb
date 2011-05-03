@@ -1,14 +1,11 @@
 require 'netlink/route'
+require 'netlink/route/handler'
 
 module Netlink
   module Route
-    class VlanHandler
-      def initialize(rtsocket = Netlink::Route::Socket.new)
-        @rtsocket = rtsocket
-      end
-      
-      def index(v)
-        @rtsocket.index(v)
+    class VlanHandler < Handler
+      def clear_cache
+        # No cache
       end
       
       def list(filter={}, &blk)

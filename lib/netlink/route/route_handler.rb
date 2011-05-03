@@ -1,4 +1,5 @@
 require 'netlink/route'
+require 'netlink/route/handler'
 
 module Netlink
   # struct rta_cacheinfo
@@ -47,18 +48,9 @@ module Netlink
 
   module Route
     # This class manipulates the kernel routing table
-    class RouteHandler
-      def initialize(rtsocket = Netlink::Route::Socket.new)
-        @rtsocket = rtsocket
-        clear_cache
-      end
-      
+    class RouteHandler < Handler
       def clear_cache
         @routes = nil
-      end
-      
-      def index(v)
-        @rtsocket.index(v)
       end
       
       # Send message to download the kernel routing table. Either returns an
@@ -88,6 +80,18 @@ module Netlink
         @rtsocket.receive_until_done(RTM_NEWROUTE, &blk)
       end
 
+      class Filter < BaseFilter #:nodoc:
+        filter(:family) { |o,v| o.family == v }
+        filter(:table) { |o,v| o.table == v }
+        filter(:protocol) { |o,v| o.protocol == v }
+        filter(:type) { |o,v| o.type == v }
+        filter(:scope) { |o,v| o.scope == v }
+        filter(:flags) { |o,v| (o.flags & v) == v }
+        filter(:noflags) { |o,v| (o.flags & v) == 0 }
+        filter(:oif) { |o,v| o.oif == v }
+        filter(:iif) { |o,v| o.iif == v }
+      end
+      
       # Return the memoized route table, filtered according to
       # the optional criteria. Examples:
       #    :family => Socket::AF_INET
@@ -100,22 +104,10 @@ module Netlink
       #    :oif => "eth0"
       #    :iif => "eth1"
       def list(filter=nil, &blk)
-        @routes = read_routes
-        return @routes.each(&blk) unless filter
-        return to_enum(:list, filter) unless block_given?
-        filter[:oif] = index(filter[:oif]) if filter.has_key?(:oif)
-        filter[:iif] = index(filter[:iif]) if filter.has_key?(:iif)
-        @routes.each do |o|
-          yield o if (!filter[:family] || o.family == filter[:family]) &&
-          (!filter[:table] || o.table == filter[:table]) &&
-          (!filter[:protocol] || o.protocol == filter[:protocol]) &&
-          (!filter[:type] || o.scope == filter[:protocol]) &&
-          (!filter[:scope] || o.type == filter[:type]) &&
-          (!filter[:flags] || (o.flags & filter[:flags]) == filter[:flags]) &&
-          (!filter[:noflags] || (o.flags & filter[:noflags]) == 0) &&
-          (!filter[:oif] || o.oif == filter[:oif]) &&
-          (!filter[:iif] || o.iif == filter[:iif])
-        end
+        @routes ||= read_routes
+        filter[:oif] = index(filter[:oif]) if filter && filter.has_key?(:oif)
+        filter[:iif] = index(filter[:iif]) if filter && filter.has_key?(:iif)
+        do_list(@routes, filter, &blk)
       end
       alias :each :list
       
