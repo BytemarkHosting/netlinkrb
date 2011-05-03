@@ -151,16 +151,34 @@ module Netlink
       def iproute_modify(code, flags, msg) #:nodoc:
         msg = RT.new(msg)
         
-        msg.table ||= RT_TABLE_MAIN
-        msg.metrics ||= []
         if code != RTM_DELROUTE
           msg.protocol ||= RTPROT_BOOT
-          msg.scope ||= RT_SCOPE_UNIVERSE
           msg.type ||= RTN_UNICAST
-        else
-          msg.scope ||= RT_SCOPE_NOWHERE
         end
-        # Note: there are more complex rules in ip/iproute.c for setting defaults
+        # There is scary code in ip/iproute.c for setting defaults
+        unless msg.table
+          msg.table = case msg.type
+          when RTN_LOCAL, RTN_BROADCAST, RTN_NAT, RTN_ANYCAST
+            RT_TABLE_LOCAL
+          else
+            RT_TABLE_MAIN
+          end
+        end
+        unless msg.scope
+          msg.scope = (code != RTM_DELROUTE) ? RT_SCOPE_UNIVERSE : RT_SCOPE_NOWHERE
+          case msg.type
+          when RTN_LOCAL, RTN_NAT
+            msg.scope = RT_SCOPE_HOST
+          when RTN_BROADCAST, RTN_MULTICAST, RTN_ANYCAST
+            msg.scope RT_SCOPE_LINK
+          when RTN_UNICAST, RTN_UNSPEC
+            if code == RTM_DELROUTE
+              msg.scope = RT_SCOPE_NOWHERE
+            elsif !msg.gateway && !msg.multipath
+              msg.scope = RT_SCOPE_LINK
+            end
+          end
+        end
 
         msg.iif = index(msg.iif) if msg.iif.is_a?(String)
         msg.oif = index(msg.oif) if msg.oif.is_a?(String)
