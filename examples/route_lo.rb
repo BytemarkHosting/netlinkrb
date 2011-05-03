@@ -9,8 +9,8 @@ require 'netlink/route'
 
 nl = Netlink::Route::Socket.new
 puts "*** links ***"
-pp nl.read_links
+pp nl.if.read_links
 puts "*** addrs ***"
-pp nl.read_addrs(:family => Socket::AF_INET)
+pp nl.if.read_addrs(:family => Socket::AF_INET)
 puts "*** routes ***"
-pp nl.read_routes(:family => Socket::AF_INET)
+pp nl.rt.read_routes(:family => Socket::AF_INET)

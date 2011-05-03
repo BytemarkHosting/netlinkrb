@@ -219,7 +219,7 @@ module Netlink
   IFLA_WEIGHT		= 15
   IFLA_OPERSTATE	= 16
   IFLA_LINKMODE		= 17
-  IFLA_LINKINFO		= 18
+  IFLA_LINKINFO		= 18	# Nested IFLA_INFO_*
   IFLA_NET_NS_PID	= 19
   IFLA_IFALIAS		= 20
   IFLA_NUM_VF		= 21
@@ -228,6 +228,33 @@ module Netlink
   IFLA_VF_PORTS		= 24
   IFLA_PORT_SELF	= 25
 
+  IFLA_INFO_UNSPEC	= 0
+  IFLA_INFO_KIND	= 1	# "vlan", "gre" etc
+  IFLA_INFO_DATA	= 2	# packed rtattrs specific to type, e.g. vlan
+  IFLA_INFO_XSTATS	= 3
+
+  # INFO_DATA for INFO_KIND == "vlan"
+  IFLA_VLAN_UNSPEC	= 0
+  IFLA_VLAN_ID		= 1	# ushort
+  IFLA_VLAN_FLAGS	= 2	# struct ifla_vlan_flags
+  IFLA_VLAN_EGRESS_QOS	= 3	# followed by instance of IFLA_VLAN_QOS_*
+  IFLA_VLAN_INGRESS_QOS	= 4	# followed by instance of IFLA_VLAN_QOS_*
+  
+  IFLA_VLAN_QOS_UNSPEC	= 0
+  IFLA_VLAN_QOS_MAPPING	= 1
+  
+  IFLA_MACVLAN_UNSPEC	= 0
+  IFLA_MACVLAN_MODE	= 1
+  
+  MACVLAN_MODE_PRIVATE	= 1
+  MACVLAN_MODE_VEPA	= 2
+  MACVLAN_MODE_BRIDGE	= 4
+  
+  # linux/if_vlan.h
+  VLAN_FLAG_REORDER_HDR		= 0x1
+  VLAN_FLAG_GVRP		= 0x2
+  VLAN_FLAG_LOOSE_BINDING	= 0x4
+  
   # from linux/if_addr.h
   IFA_UNSPEC		= 0
   IFA_ADDRESS		= 1

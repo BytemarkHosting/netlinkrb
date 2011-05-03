@@ -90,7 +90,7 @@ module Netlink
     #   pid:: pid, defaults to $$
     #   vflags:: sendmsg flags, defaults to 0
     # Normally 'msg' would be an instance of a Netlink::Message subclass,
-    # although in fact any object which respond to #to_s will do (if you
+    # although in fact any object which respond to #to_str will do (if you
     # want to pack the message body yourself).
     def send_request(type, msg, flags=NLM_F_REQUEST, sockaddr=SOCKADDR_DEFAULT, seq=next_seq, pid=@pid, vflags=0, controls=[])
       @socket.sendmsg(
@@ -101,7 +101,7 @@ module Netlink
 
     # Build a message comprising header+body. It is not padded at the end.
     def build_message(type, body, flags=NLM_F_REQUEST, seq=next_seq, pid=@pid)
-      body = body.to_s
+      body = body.to_str
       header = [
         body.bytesize + NLMSGHDR_SIZE,
         type, flags, seq, pid
@@ -190,7 +190,7 @@ module Netlink
       loop do
         parse_yield(recvmsg(timeout)) do |type, flags, seq, pid, msg|
           if !check_pid_seq || (pid == @pid && seq == @seq)
-            self.class.check_error(msg.error) if type == NLMSG_ERROR
+            Netlink.check_error(msg.error) if type == NLMSG_ERROR
             res = yield type, msg
             next unless res == false
           end

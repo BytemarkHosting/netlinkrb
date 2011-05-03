@@ -9,8 +9,8 @@ require 'netlink/route'
 # and then manipulated internally.
 
 nl = Netlink::Route::Socket.new
-pp nl.link["eth0"]
-pp nl.addrs["eth0"]
+pp nl.if["eth0"]
+pp nl.if.addrs["eth0"]
 
 # Find the route with the shortest prefix len (probably default route)
-pp nl.routes[Socket::AF_INET].min_by { |route| route.dst_len }
+pp nl.rt[Socket::AF_INET].min_by { |route| route.dst_len }

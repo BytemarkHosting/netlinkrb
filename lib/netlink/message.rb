@@ -61,7 +61,7 @@ module Netlink
     # colons, hyphens or dots.
     #    IFInfo.new(:address => "00:11:22:33:44:55")   # this is OK
     define_type :l2addr,
-        :pack => lambda { |val,obj| [val.delete(":-.")].pack("H*") },
+        :pack => lambda { |val,obj| [val.delete(":.-")].pack("H*") },  # hyphen last, otherwise it's a character range
         :unpack => lambda { |val,obj| val.unpack("H*").first }
 
     # L3 addresses are presented as IPAddr objects where possible. When
@@ -72,10 +72,10 @@ module Netlink
     #   IFAddr.new(:family=>Socket::AF_INET, :address=>0x01020304)
     # Furthermore, the 'family' will be set automatically if it is unset
     # at the time the message is encoded:
-    #   IFAddr.new(:address=>IPAddr.new("1.2.3.4")).to_s     # ok
-    #   IFAddr.new(:address=>"1.2.3.4").to_s                 # ok
-    #   IFAddr.new(:address=>0x01020304).to_s                # error, unknown family
-    #   IFAddr.new(:address=>"1.2.3.4", :local=>"::1").to_s  # error, mismatched families
+    #   IFAddr.new(:address=>IPAddr.new("1.2.3.4")).to_str     # ok
+    #   IFAddr.new(:address=>"1.2.3.4").to_str                 # ok
+    #   IFAddr.new(:address=>0x01020304).to_str                # error, unknown family
+    #   IFAddr.new(:address=>"1.2.3.4", :local=>"::1").to_str  # error, mismatched families
     define_type :l3addr,
         :pack => lambda { |val,obj|
           case obj.family
@@ -147,15 +147,19 @@ module Netlink
     # The main message is processed *after* the rtattrs; this is so that
     # the address family can be set automatically while processing any
     # optional l3 address rtattrs.
-    def to_s
+    def to_str
       data = ""
       self.class::RTATTRS.each do |code, (name, info)|
         if val = @attrs[name]
           Message.nlmsg_pad(data)  # assume NLMSG_ALIGNTO == NLA_ALIGNTO
-          if pack = info[:pack]
+          if !info
+            val = val.to_str # raw binary or nested structure
+          elsif pack = info[:pack]
             val = pack[val,self]
           elsif pattern = info[:pattern]
             val = Array(val).pack(pattern)
+          else
+            val = val.to_str
           end
           data << [val.bytesize+RTATTR_SIZE, code].pack(RTATTR_PACK) << val
         end
@@ -166,27 +170,28 @@ module Netlink
     # Convert a binary representation of this message into an object instance.
     # The main message is processed *before* the rtattrs, so that the
     # address family is available for l3 address rtattrs.
-    def self.parse(data)
-      res = super
-      attrs = res.to_hash
-      unpack_rtattr(data, attr_offset) do |code, val|
-        name, info = self::RTATTRS[code]
-        if name
-          if !info
-            # skip
-          elsif unpack = info[:unpack]
-            val = unpack[val,res]
-          elsif pattern = info[:pattern]
-            val = val.unpack(pattern).first
+    def self.parse(data,*rest)
+      super(data,*rest) do |res|
+        attrs = res.to_hash
+        unpack_rtattr(data, attr_offset) do |code, val|
+          name, info = self::RTATTRS[code]
+          if name
+            if !info
+              # skip
+            elsif unpack = info[:unpack]
+              val = unpack[val,res]
+            elsif pattern = info[:pattern]
+              val = val.unpack(pattern).first
+            end
+            warn "Duplicate attribute #{name} (#{code}): #{attrs[name].inspect} -> #{val.inspect}" if attrs[name]
+            attrs[name] = val
+          else
+            warn "Unknown attribute #{code}, value #{val.inspect}"
+            attrs[code] = val
           end
-          warn "Duplicate attribute #{name} (#{code}): #{attrs[name].inspect} -> #{val.inspect}" if attrs[name]
-          attrs[name] = val
-        else
-          warn "Unknown attribute #{code}, value #{val.inspect}"
-          attrs[code] = val
         end
+        yield res if block_given?
       end
-      res
     end
 
     # Unpack a string containing a sequence of rtattrs, yielding each in turn.

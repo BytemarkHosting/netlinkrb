@@ -24,7 +24,7 @@ module Netlink
 #
 #   msg = Foo.new(:bar => 123)
 #   msg.bar = 456               # accessor methods
-#   str = msg.to_s              # convert to binary
+#   str = msg.to_str            # convert to binary
 #   msg2 = Foo.parse(str)       # convert from binary
 #   msg2 = Foo.new(msg)         # copy an existing object
 class CStruct
@@ -169,7 +169,7 @@ class CStruct
   end
   
   # Returns the packed binary representation of this structure
-  def to_s
+  def to_str
     self.class::FIELDS.map { |key| self[key] }.pack(self.class::FORMAT)
   end
 
@@ -177,11 +177,14 @@ class CStruct
     "#<#{self.class} #{@attrs.inspect}>"
   end
   
-  # Convert a binary representation of this structure into an object instance
+  # Convert a binary representation of this structure into an object instance.
+  # If a block is given, the object is yielded to that block. Finally the
+  # after_parse hook is called.
   def self.parse(data, obj=new)
     data.unpack(self::FORMAT).zip(self::FIELDS).each do |val, key|
       obj[key] = val
     end
+    yield obj if block_given?
     obj.after_parse
     obj
   end

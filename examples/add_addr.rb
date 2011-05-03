@@ -5,16 +5,17 @@ require 'netlink/route'
 
 nl = Netlink::Route::Socket.new
 puts "\n*** Before adding address"
-nl.addrs["lo"][Socket::AF_INET].each { |x| puts x.address }
+nl.if.addrs["lo"][Socket::AF_INET].each { |x| puts x.address }
 
-begin
-  nl.add_addr(:index=>"lo", :local=>"1.2.3.4", :prefixlen=>32)
-rescue Errno::EEXIST
-end
 puts "\n*** After adding address"
-nl.addrs["lo"][Socket::AF_INET].each { |x| puts x.address }
+begin
+  nl.if.add_addr(:index=>"lo", :local=>"1.2.3.4", :prefixlen=>32)
+rescue Errno::EEXIST
+  puts "Already exists"
+end
+nl.if.addrs["lo"][Socket::AF_INET].each { |x| puts x.address }
 
-nl.delete_addr(:index=>"lo", :local=>"1.2.3.4", :prefixlen=>32)
 puts "\n*** After deleting address"
-nl.addrs["lo"][Socket::AF_INET].each { |x| puts x.address }
+nl.if.delete_addr(:index=>"lo", :local=>"1.2.3.4", :prefixlen=>32)
+nl.if.addrs["lo"][Socket::AF_INET].each { |x| puts x.address }
 
