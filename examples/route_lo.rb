@@ -7,10 +7,10 @@ require 'netlink/route'
 # Example of use of low-level API for NETLINK_ROUTE socket.
 # Each of these method calls performs a netlink protocol exchange.
 
-nl = Netlink::Route::Socket.new
+rt = Netlink::Route::Socket.new
 puts "*** links ***"
-pp nl.if.read_links
+pp rt.links.read_links
 puts "*** addrs ***"
-pp nl.if.read_addrs(:family => Socket::AF_INET)
+pp rt.addrs.read_addrs
 puts "*** routes ***"
-pp nl.rt.read_routes(:family => Socket::AF_INET)
+pp rt.routes.read_routes

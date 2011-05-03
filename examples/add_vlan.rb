@@ -6,16 +6,16 @@ require 'pp'
 
 nl = Netlink::Route::Socket.new
 puts "\n*** Before adding VLAN"
-pp nl.if.links(:kind=>"vlan").to_a
+pp nl.vlans.list(:link=>"lo").to_a
 
 puts "\n*** After adding VLAN on lo"
 begin
-  nl.if.add_vlan(:link=>"lo", :vlan_id=>1234)
+  nl.vlans.add(:link=>"lo", :vlan_id=>1234)
 rescue Errno::EEXIST
   puts "Already present"
 end
-pp nl.if.links(:kind=>"vlan").to_a
+pp nl.vlans.list(:link=>"lo").to_a
 
 puts "\n*** After deleting VLANs from lo"
-nl.if.delete_vlan(:link=>"lo", :vlan_id=>1234)
-pp nl.if.links(:kind=>"vlan").to_a
+nl.vlans.delete(:link=>"lo", :vlan_id=>1234)
+pp nl.vlans.list(:link=>"lo").to_a

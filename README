@@ -15,18 +15,24 @@ themselves are built using class Message or RtattrMessage, which in turn are
 subclasses of CStruct, which performs the low-level packing and unpacking of
 the message bodies.
 
-     Route  Firewall  ...etc
-       |       |       |
-       +-------+-------+
-               |
-               v
-            NLSocket
-               |
-               v
-    Message / RtattrMessage
-               |
-               v
-            CStruct
+      LinkHandler/
+      AddrHandler/
+      VlanHandler/
+      RouteHandler
+           |
+           v
+         Route  Firewall  NFLog  ...etc
+           |       |       |
+           +-------+-------+
+                   |
+                   v
+                NLSocket
+                   |
+                   v
+        Message / RtattrMessage
+                   |
+                   v
+                CStruct
 
 Useful reference material
 =========================

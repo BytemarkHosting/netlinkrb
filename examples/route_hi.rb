@@ -8,9 +8,17 @@ require 'netlink/route'
 # The data is memoized - that is, it's downloaded from the kernel once
 # and then manipulated internally.
 
-nl = Netlink::Route::Socket.new
-pp nl.if["eth0"]
-pp nl.if.addrs["eth0"]
+rt = Netlink::Route::Socket.new
 
-# Find the route with the shortest prefix len (probably default route)
-pp nl.rt[Socket::AF_INET].min_by { |route| route.dst_len }
+puts "\nInterface eth0:"
+pp rt.links["eth0"]
+
+puts "\nAddresses on interface eth0:"
+pp rt.addrs.list(:index=>"eth0").to_a
+
+puts "\nAll routes in main routing table:"
+pp rt.routes.list(:family=>Socket::AF_INET, :table=>Netlink::RT_TABLE_MAIN).to_a
+
+puts "\nDefault route is probably:"
+pp rt.routes.list(:family=>Socket::AF_INET, :table=>Netlink::RT_TABLE_MAIN).
+  min_by { |route| route.dst_len }
