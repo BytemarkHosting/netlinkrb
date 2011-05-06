@@ -35,8 +35,13 @@ if BasicSocket.instance_methods.grep(/^sendmsg$/).empty?
       iov[:len] = mesg.bytesize
       
       header = Msghdr.new
-      header[:name] = nil     # TODO: dest_sockaddr
-      header[:namelen] = 0    # dest_sockaddr
+      if dest_sockaddr
+        dest_sockaddr = dest_sockaddr.to_sockaddr if dest_sockaddr.respond_to?(:to_sockaddr)
+        nbuf = FFI::MemoryPointer.new(dest_sockaddr.bytesize, 1, false)
+        nbuf.put_bytes(0, dest_sockaddr)
+        header[:name] = nbuf
+        header[:namelen] = dest_sockaddr.bytesize
+      end
       header[:iov] = iov
       header[:iovlen] = 1
       header[:control] = nil  # TODO: controls
