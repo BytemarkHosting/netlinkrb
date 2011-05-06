@@ -1,9 +1,9 @@
 require 'socket'
-require 'netlink/c_struct'
-require 'netlink/message'  # just for :dev_name type
-require 'netlink/constants'
+require 'linux/constants'
+require 'linux/c_struct'
+require 'linux/netlink/message'  # just for :dev_name type
 
-module Netlink
+module Linux
   #-
   # Definitions mainly from linux/netfilter_ipv4/ip_tables.h
   #+
@@ -72,5 +72,5 @@ module Netlink
 end
 
 if __FILE__ == $0
-  iptables = Netlink::Iptables4.new
+  iptables = Linux::Iptables4.new
 end

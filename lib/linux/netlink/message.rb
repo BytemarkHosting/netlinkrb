@@ -1,7 +1,8 @@
-require 'netlink/c_struct'
-require 'netlink/constants'
+require 'linux/c_struct'
+require 'linux/constants'
 require 'ipaddr'
 
+module Linux
 module Netlink
   NLMSGHDR_PACK = "LSSLL".freeze  # :nodoc:
   NLMSGHDR_SIZE = [0,0,0,0,0].pack(NLMSGHDR_PACK).bytesize # :nodoc:
@@ -220,3 +221,4 @@ module Netlink
     field :msg_pid, :uint32
   end
 end
+end # module Linux

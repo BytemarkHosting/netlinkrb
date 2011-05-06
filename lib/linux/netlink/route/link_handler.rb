@@ -1,6 +1,7 @@
-require 'netlink/route'
-require 'netlink/route/handler'
+require 'linux/netlink/route'
+require 'linux/netlink/route/handler'
 
+module Linux
 module Netlink
   # struct rtnl_link_stats / rtnl_link_stats64
   LinkStats = Struct.new :rx_packets, :tx_packets,
@@ -131,12 +132,12 @@ module Netlink
       #
       #   res = ip.link.read_link
       #   p res
-      #   [#<Netlink::IFInfo {:family=>0, :type=>772, :index=>1,
+      #   [#<Linux::Netlink::IFInfo {:family=>0, :type=>772, :index=>1,
       #    :flags=>65609, :change=>0, :ifname=>"lo", :txqlen=>0, :operstate=>0,
       #    :linkmode=>0, :mtu=>16436, :qdisc=>"noqueue", :map=>"...",
       #    :address=>"\x00\x00\x00\x00\x00\x00", :broadcast=>"\x00\x00\x00\x00\x00\x00",
-      #    :stats32=>#<struct Netlink::LinkStats rx_packets=22, ...>,
-      #    :stats64=>#<struct Netlink::LinkStats rx_packets=22, ...>}>, ...]
+      #    :stats32=>#<struct Linux::Netlink::LinkStats rx_packets=22, ...>,
+      #    :stats64=>#<struct Linux::Netlink::LinkStats rx_packets=22, ...>}>, ...]
       def read_link(opt=nil, &blk)
         @rtsocket.send_request RTM_GETLINK, IFInfo.new(opt),
                      NLM_F_ROOT | NLM_F_MATCH | NLM_F_REQUEST
@@ -158,15 +159,15 @@ module Netlink
       # it is efficient to call this method multiple times.
       #
       #    ip.link.list { |x| p x }
-      #    ethers = ip.link.list(:type => Netlink::ARPHRD_ETHER).to_a
+      #    ethers = ip.link.list(:type => Linux::ARPHRD_ETHER).to_a
       #    vlans = ip.link.list(:kind => "vlan").to_a
-      #    ip.link.list(:flags => Netlink::IFF_RUNNING)
-      #    ip.link.list(:noflags => Netlink::IFF_POINTOPOINT)
+      #    ip.link.list(:flags => Linux::IFF_RUNNING)
+      #    ip.link.list(:noflags => Linux::IFF_POINTOPOINT)
       #    ip.link.list(:link => "lo")   # vlan etc attached to this interface
       def list(filter=nil, &blk)
         @link ||= read_link
         filter[:link] = index(filter[:link]) if filter && filter.has_key?(:link)
-        do_list(@link, filter, &blk)
+        filter_list(@link, filter, &blk)
       end
       alias :each :list
             
@@ -187,16 +188,16 @@ module Netlink
       
       # Add an interface (raw). e.g.
       #
-      #    require 'netlink/route'
-      #    ip = Netlink::Route::Socket.new
+      #    require 'linux/netlink/route'
+      #    ip = Linux::Netlink::Route::Socket.new
       #    ip.link.add(
       #        :link=>"lo",
-      #        :linkinfo=>Netlink::LinkInfo.new(
+      #        :linkinfo=>Linux::Netlink::LinkInfo.new(
       #            :kind=>"vlan",
-      #            :data=>Netlink::VlanInfo.new(
+      #            :data=>Linux::Netlink::VlanInfo.new(
       #                :id=>1234,
-      #                :flags => Netlink::VlanFlags.new(
-      #                    :flags=>Netlink::VLAN_FLAG_LOOSE_BINDING,
+      #                :flags => Linux::Netlink::VlanFlags.new(
+      #                    :flags=>Linux::VLAN_FLAG_LOOSE_BINDING,
       #                    :mask=>0xffffffff
       #    ))))
                       
@@ -243,3 +244,4 @@ module Netlink
     end
   end
 end
+end # module Linux

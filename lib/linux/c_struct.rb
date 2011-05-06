@@ -1,4 +1,4 @@
-module Netlink
+module Linux
 
 # This class allows defining of C-style structures, and converting
 # object instances to and from a packed binary representation.
@@ -6,7 +6,7 @@ module Netlink
 # A new structure is created by subclassing CStruct, and then using the
 # 'field' metaprogramming macro to define each field:
 #
-#   class Foo < CStruct
+#   class Foo < Linux::CStruct
 #     field :bar, :char
 #     field :baz, :long
 #
@@ -196,4 +196,4 @@ class CStruct
     (val + (m-1)) & ~(m-1)
   end
 end
-end # module Netlink
+end # module Linux

@@ -1,6 +1,7 @@
-require 'netlink/route'
-require 'netlink/route/handler'
+require 'linux/netlink/route'
+require 'linux/netlink/route/handler'
 
+module Linux
 module Netlink
   module Route
     class VlanHandler < Handler
@@ -17,7 +18,7 @@ module Netlink
       #    nl.vlans.add(
       #      :link=>"lo",
       #      :vlan_id=>1234,
-      #      :vlan_flags=>Netlink::VLAN_FLAG_LOOSE_BINDING,
+      #      :vlan_flags=>Linux::VLAN_FLAG_LOOSE_BINDING,
       #      :vlan_mask=>0xffffffff
       #    )
       def add(opt)
@@ -63,3 +64,4 @@ module Netlink
     end
   end
 end
+end # module Linux

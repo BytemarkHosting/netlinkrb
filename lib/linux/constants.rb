@@ -7,7 +7,7 @@ class Socket
   IPPROTO_IPV6		= 41		unless defined? Socket::IPPROTO_IPV6
 end
 
-module Netlink
+module Linux
   # From linux/netlink.h
   NETLINK_ROUTE		= 0
   NETLINK_UNUSED	= 1

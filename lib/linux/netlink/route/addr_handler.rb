@@ -1,6 +1,7 @@
-require 'netlink/route'
-require 'netlink/route/handler'
+require 'linux/netlink/route'
+require 'linux/netlink/route/handler'
 
+module Linux
 module Netlink
   # struct ifa_cacheinfo
   IFACacheInfo = Struct.new :prefered, :valid, :cstamp, :tstamp
@@ -41,7 +42,7 @@ module Netlink
       #
       #   res = nl.read_addr(:family => Socket::AF_INET)
       #   p res
-      #   [#<Netlink::IFAddr {:family=>2, :prefixlen=>8, :flags=>128, :scope=>254,
+      #   [#<Linux::Netlink::IFAddr {:family=>2, :prefixlen=>8, :flags=>128, :scope=>254,
       #    :index=>1, :address=>#<IPAddr: IPv4:127.0.0.1/255.255.255.255>,
       #    :local=>#<IPAddr: IPv4:127.0.0.1/255.255.255.255>, :label=>"lo"}>, ...]
       def read_addr(opt=nil, &blk)
@@ -70,7 +71,7 @@ module Netlink
       def list(filter=nil, &blk)
         @addr ||= read_addr
         filter[:index] = index(filter[:index]) if filter && filter.has_key?(:index)
-        do_list(@addr, filter, &blk)
+        filter_list(@addr, filter, &blk)
       end
       alias :each :list
       
@@ -90,7 +91,7 @@ module Netlink
       # Add an IP address to an interface
       #
       #    require 'netlink/route'
-      #    ip = Netlink::Route::Socket.new
+      #    ip = Linux::Netlink::Route::Socket.new
       #    ip.addr.add(:index=>"eth0", :local=>"1.2.3.4", :prefixlen=>24)
       def add(opt)
         ipaddr_modify(RTM_NEWADDR, NLM_F_CREATE|NLM_F_EXCL, opt)
@@ -122,3 +123,4 @@ module Netlink
     end
   end
 end
+end # module Linux

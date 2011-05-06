@@ -1,7 +1,8 @@
+module Linux
 module Netlink
   module Route
-    # This class allows objects to be created representing the
-    # conditions given to the 'list' method
+    # The base class containing shared methods between all the
+    # NETLINK_ROUTE handler classes.
     class BaseFilter #:nodoc:
       def self.filter name, &blk
         define_method "#{name}=" do |matchval|
@@ -21,7 +22,7 @@ module Netlink
 
     # Code which is common to all the NETLINK_ROUTE handlers
     class Handler
-      def initialize(rtsocket = Netlink::Route::Socket.new)
+      def initialize(rtsocket = Route::Socket.new)
         @rtsocket = rtsocket
         clear_cache
       end
@@ -35,7 +36,7 @@ module Netlink
       end
 
       # Generic listing and filtering
-      def do_list(data, filter, &blk)
+      def filter_list(data, filter, &blk)
         return data.each(&blk) unless filter
         return to_enum(:list, filter) unless block_given?
         fm = self.class::Filter.new(filter)
@@ -44,3 +45,4 @@ module Netlink
     end
   end
 end
+end # module Linux

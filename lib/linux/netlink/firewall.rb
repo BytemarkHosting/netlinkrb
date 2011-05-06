@@ -3,9 +3,10 @@
 #
 # TODO: implement multiple queue support (NFQUEUE)
 
-require 'netlink/nlsocket'
-require 'netlink/message'
+require 'linux/netlink/nlsocket'
+require 'linux/netlink/message'
 
+module Linux
 module Netlink
   # struct ipq_packet_msg
   class IPQPacket < Message
@@ -54,7 +55,7 @@ module Netlink
   module Firewall
     class Socket < NLSocket
       def initialize(opt={})
-        super(opt.merge(:protocol => Netlink::NETLINK_FIREWALL))
+        super(opt.merge(:protocol => Linux::NETLINK_FIREWALL))
       end
 
       # Set mode to IPQ_COPY_META to receive metadata only, IPQ_COPY_PACKET
@@ -79,3 +80,4 @@ module Netlink
     end
   end
 end
+end # module Linux

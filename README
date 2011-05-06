@@ -5,6 +5,11 @@ This library provides an API for using a Linux Netlink socket, for doing
 things like manipulating IP interfaces, routes and firewall rules
 programmatically.
 
+Requirements
+============
+
+ruby 1.9 (tested with ruby 1.9.2), OR ruby 1.8.7 with the ffi library.
+
 Code organisation
 =================
 

@@ -1,22 +1,10 @@
 require 'socket'
-require 'netlink/constants'
-require 'netlink/message'
+require 'linux/constants'
+require 'linux/error'
+require 'linux/netlink/message'
 
+module Linux
 module Netlink
-  ERRNO_MAP = {}  #:nodoc:
-  Errno.constants.each do |k|
-    klass = Errno.const_get(k)
-    next unless klass.is_a?(Class) and Class.const_defined?(:Errno)
-    ERRNO_MAP[klass::Errno] = klass
-  end
-
-  # Raise an Errno exception if the given rc is not NOERROR
-  def self.check_error(rc)
-    if -rc != Errno::NOERROR::Errno
-      raise ERRNO_MAP[-rc] || "Netlink Error: #{msg.inspect}"
-    end
-  end
-  
   # NLSocket provides low-level sending and receiving of messages across
   # a netlink socket, adding headers to sent messages and parsing
   # received messages.
@@ -48,9 +36,9 @@ module Netlink
     attr_accessor :junk_handler # proc to log or handle unexpected messages
 
     # Create a new Netlink socket. Pass in chosen protocol:
-    #   :protocol => Netlink::NETLINK_ARPD
-    #   :protocol => Netlink::NETLINK_FIREWALL
-    #   :protocol => Netlink::NETLINK_ROUTE
+    #   :protocol => Linux::NETLINK_ARPD
+    #   :protocol => Linux::NETLINK_FIREWALL
+    #   :protocol => Linux::NETLINK_ROUTE
     # etc. Other options:
     #   :groups => N (subscribe to multicast groups, default to 0)
     #   :seq => N (override initial sequence number)
@@ -190,7 +178,7 @@ module Netlink
       loop do
         parse_yield(recvmsg(timeout)) do |type, flags, seq, pid, msg|
           if !check_pid_seq || (pid == @pid && seq == @seq)
-            Netlink.check_error(msg.error) if type == NLMSG_ERROR
+            Linux.check_error(msg.error) if type == NLMSG_ERROR
             res = yield type, msg
             next unless res == false
           end
@@ -244,8 +232,9 @@ module Netlink
         STDERR.puts "  data=#{data.inspect}" if $DEBUG && !data.empty?
         yield type, flags, seq, pid, data
         ptr = ptr + Message.nlmsg_align(len)
-        break unless flags & Netlink::NLM_F_MULTI
+        break unless flags & Linux::NLM_F_MULTI
       end
     end
   end
 end
+end # module Linux

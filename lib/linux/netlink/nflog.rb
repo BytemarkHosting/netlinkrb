@@ -1,6 +1,7 @@
-require 'netlink/message'
-require 'netlink/nlsocket'
+require 'linux/netlink/message'
+require 'linux/netlink/nlsocket'
 
+module Linux
 module Netlink
   ULOG_NL_EVENT = 111  # from ipv4/netfilter/ipt_ULOG.c
   
@@ -34,7 +35,7 @@ module Netlink
         unless opt[:groups]
           opt[:groups] = 1 << (opt.fetch(:group) - 1)
         end
-        super(opt.merge(:protocol => Netlink::NETLINK_NFLOG))
+        super(opt.merge(:protocol => NETLINK_NFLOG))
       end
       
       # Receive packets and yield them to the block
@@ -44,3 +45,4 @@ module Netlink
     end
   end
 end
+end # module Linux

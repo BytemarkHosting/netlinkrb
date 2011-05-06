@@ -1,9 +1,9 @@
 LIBDIR = File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift LIBDIR
 
-require 'netlink/route'
+require 'linux/netlink/route'
 
-ip = Netlink::Route::Socket.new
+ip = Linux::Netlink::Route::Socket.new
 puts "\n*** Before adding address"
 ip.addr.list(:index=>"lo", :family=>Socket::AF_INET) { |x| puts x.address }
 

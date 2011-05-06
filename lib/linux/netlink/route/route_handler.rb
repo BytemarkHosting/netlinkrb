@@ -1,6 +1,7 @@
-require 'netlink/route'
-require 'netlink/route/handler'
+require 'linux/netlink/route'
+require 'linux/netlink/route/handler'
 
+module Linux
 module Netlink
   # struct rta_cacheinfo
   RTACacheInfo = Struct.new :clntref, :lastuse, :expires, :error, :used, :id, :ts, :tsage
@@ -64,12 +65,12 @@ module Netlink
       #
       # A hash of kernel options may be supplied, but you might also have
       # to perform your own filtering. e.g.
-      #   read_route(:family=>Socket::AF_INET)           # works
-      #   read_route(:protocol=>Netlink::RTPROT_STATIC)  # ignored
+      #   read_route(:family=>Socket::AF_INET)         # works
+      #   read_route(:protocol=>Linux::RTPROT_STATIC)  # ignored
       #
       #   res = ip.route.read_route(:family => Socket::AF_INET)
       #   p res
-      #   [#<Netlink::RT {:family=>2, :dst_len=>32, :src_len=>0, :tos=>0,
+      #   [#<Linux::Netlink::RT {:family=>2, :dst_len=>32, :src_len=>0, :tos=>0,
       #    :table=>255, :protocol=>2, :scope=>253, :type=>3, :flags=>0, :table2=>255,
       #    :dst=>#<IPAddr: IPv4:127.255.255.255/255.255.255.255>,
       #    :prefsrc=>#<IPAddr: IPv4:127.0.0.1/255.255.255.255>, :oif=>1}>, ...]
@@ -77,7 +78,7 @@ module Netlink
       # Note that not all attributes will always be present. In particular,
       # a defaultroute (dst_len=0) misses out the dst address completely:
       #
-      #   [#<Netlink::RT {:family=>2, :dst_len=>0, :src_len=>0, :tos=>0,
+      #   [#<Linux::Netlink::RT {:family=>2, :dst_len=>0, :src_len=>0, :tos=>0,
       #    :table=>254, :protocol=>4, :scope=>0, :type=>1, :flags=>0, :table2=>254,
       #    :gateway=>#<IPAddr: IPv4:10.69.255.253/255.255.255.255>, :oif=>2}>, ...]
       def read_route(opt=nil, &blk)
@@ -101,19 +102,19 @@ module Netlink
       # Return the memoized route table, filtered according to
       # the optional criteria. Examples:
       #    :family => Socket::AF_INET
-      #    :table => Netlink::RT_TABLE_DEFAULT
-      #    :protocol => Netlink::RTPROT_STATIC
-      #    :type => Netlink::RTN_UNICAST
-      #    :scope => Netlink::RT_SCOPE_HOST
-      #    :flags => Netlink::RTM_F_NOTIFY
-      #    :noflags => Netlink::RTM_F_CLONED
+      #    :table => Linux::RT_TABLE_DEFAULT
+      #    :protocol => Linux::RTPROT_STATIC
+      #    :type => Linux::RTN_UNICAST
+      #    :scope => Linux::RT_SCOPE_HOST
+      #    :flags => Linux::RTM_F_NOTIFY
+      #    :noflags => Linux::RTM_F_CLONED
       #    :oif => "eth0"
       #    :iif => "eth1"
       def list(filter=nil, &blk)
         @route ||= read_route
         filter[:oif] = index(filter[:oif]) if filter && filter.has_key?(:oif)
         filter[:iif] = index(filter[:iif]) if filter && filter.has_key?(:iif)
-        do_list(@route, filter, &blk)
+        filter_list(@route, filter, &blk)
       end
       alias :each :list
       
@@ -195,3 +196,4 @@ module Netlink
     end
   end
 end
+end # module Linux

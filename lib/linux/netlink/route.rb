@@ -3,49 +3,50 @@
 # versa, the logic is delegated to separate classes for each entity
 # (links, addresses etc)
 
-require 'netlink/nlsocket'
-require 'netlink/message'
+require 'linux/netlink/nlsocket'
+require 'linux/netlink/message'
 
+module Linux
 module Netlink
   module Route
-    autoload :LinkHandler, 'netlink/route/link_handler'
-    autoload :VlanHandler, 'netlink/route/vlan_handler'
-    autoload :AddrHandler, 'netlink/route/addr_handler'
-    autoload :RouteHandler, 'netlink/route/route_handler'
+    autoload :LinkHandler, 'linux/netlink/route/link_handler'
+    autoload :VlanHandler, 'linux/netlink/route/vlan_handler'
+    autoload :AddrHandler, 'linux/netlink/route/addr_handler'
+    autoload :RouteHandler, 'linux/netlink/route/route_handler'
     
     # This class formats and receives messages using NETLINK_ROUTE protocol
     class Socket < NLSocket
       def initialize(opt={})
-        super(opt.merge(:protocol => Netlink::NETLINK_ROUTE))
+        super(opt.merge(:protocol => Linux::NETLINK_ROUTE))
       end
 
-      # Return a Netlink::Route::LinkHandler object for manipulating links
+      # Return a LinkHandler object for manipulating links
       def link
-        @link ||= Netlink::Route::LinkHandler.new(self)
+        @link ||= LinkHandler.new(self)
       end
       
-      # Return a Netlink::Route::VlanHandler object for manipulating vlans
+      # Return a VlanHandler object for manipulating vlans
       def vlan
-        @vlan ||= Netlink::Route::VlanHandler.new(self)
+        @vlan ||= VlanHandler.new(self)
       end
       
-      # Return a Netlink::Route::AddrHandler object for manipulating addresses
+      # Return a AddrHandler object for manipulating addresses
       def addr
-        @addr ||= Netlink::Route::AddrHandler.new(self)
+        @addr ||= AddrHandler.new(self)
       end
       
-      # Return a Netlink::Route::RT object for manipulating routes
+      # Return a RT object for manipulating routes
       def route
-        @route ||= Netlink::Route::RouteHandler.new(self)
+        @route ||= RouteHandler.new(self)
       end
 
       # Convert an interface index into name string, or nil if the
       # index is nil or 0. Raises exception for unknown values.
       #
-      #    nl = Netlink::Route::Socket.new
-      #    nl.routes(:family=>Socket::AF_INET) do |route|
-      #      puts "iif=#{nl.ifname(route.iif)}"
-      #      puts "oif=#{nl.ifname(route.oif)}"
+      #    ip = Linux::Netlink::Route::Socket.new
+      #    ip.route(:family=>Socket::AF_INET) do |route|
+      #      puts "iif=#{ip.ifname(route.iif)}"
+      #      puts "oif=#{ip.ifname(route.oif)}"
       #    end
       def ifname(index)
         return nil if index.nil? || index == 0
@@ -67,3 +68,4 @@ module Netlink
     end
   end
 end
+end # module Linux
