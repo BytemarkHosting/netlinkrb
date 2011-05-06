@@ -36,6 +36,22 @@ module Linux
     def self.table(tablename = "filter")
       @tables[tablename] ||= new(tablename, socket)
     end
+    
+    def self.tables
+      proc_read(self::PROC_TABLES)
+    end
+    
+    def self.targets
+      proc_read(self::PROC_TARGETS)
+    end
+    
+    def self.matches
+      proc_read(self::PROC_MATCHES)
+    end
+    
+    def self.proc_read(filename)
+      File.readlines(filename).each { |x| x.chomp! }
+    end
 
     def initialize(name, socket)
       raise "Invalid table name" if name.bytesize > self.class::TABLE_MAXNAMELEN

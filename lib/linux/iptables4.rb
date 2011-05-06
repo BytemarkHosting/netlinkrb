@@ -60,6 +60,10 @@ module Linux
   # Class for handling iptables. Note that this doesn't actually use
   # Netlink at all :-(
   class Iptables4 < Iptables
+    PROC_TABLES		= "/proc/net/ip_tables_names"
+    PROC_TARGETS	= "/proc/net/ip_tables_targets"
+    PROC_MATCHES	= "/proc/net/ip_tables_matches"
+
     TABLE_MAXNAMELEN	= IPT_TABLE_MAXNAMELEN
     TC_AF		= Socket::AF_INET
     TC_IPPROTO		= Socket::IPPROTO_IP
@@ -73,5 +77,6 @@ end
 
 if __FILE__ == $0
   require 'pp'
+  pp Linux::Iptables4.tables
   pp Linux::Iptables4.table("filter").rules
 end
