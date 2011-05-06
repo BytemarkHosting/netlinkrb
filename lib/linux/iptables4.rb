@@ -1,7 +1,4 @@
-require 'socket'
-require 'linux/constants'
-require 'linux/c_struct'
-require 'linux/netlink/message'  # just for :dev_name type
+require 'linux/iptables'
 
 module Linux
   #-
@@ -24,8 +21,7 @@ module Linux
   class IPTGetEntries < CStruct
     field :name, :pattern=>"Z#{IPT_TABLE_MAXNAMELEN}", :default=>EMPTY_STRING
     field :size, :uint
-    #field :entrytable, :pattern=>
-    field :entrytable, :binary   # struct ipt_entry entrytable[]
+    field :entrytable, :binary, :align=>1.size   # struct ipt_entry entrytable[0]
   end
   
   # struct ipt_entry
@@ -43,34 +39,39 @@ module Linux
     field :flags, :uchar
     field :invflags, :uchar
     ####
-    field :nfcache, :int
-    field :target_offset, :uint16
-    field :next_offset, :uint16
+    field :nfcache, :uint
+    field :target_offset, :uint16	# size of ipt_entry + matches
+    field :next_offset, :uint16		# size of ipt_entry + matches + target
     field :comefrom, :uint
-    field :packet_count, :uint64
+    ### struct xt_counters
+    field :packet_count, :uint64, :align => 8
     field :byte_count, :uint64
-    field :elems, :binary
+    ###
+    field :elems, :binary   # matches (if any), then the target
+
+    def after_parse
+      self.src = src == 0 ? nil : IPAddr.new(src, Socket::AF_INET)
+      self.dst = dst == 0 ? nil : IPAddr.new(dst, Socket::AF_INET)
+      self.smsk = smsk == 0 ? nil : IPAddr.new(smsk, Socket::AF_INET)
+      self.dmsk = dmsk == 0 ? nil : IPAddr.new(dmsk, Socket::AF_INET)
+    end
   end
 
   # Class for handling iptables. Note that this doesn't actually use
   # Netlink at all :-(
-  class Iptables4
-    TC_AF = Socket::AF_INET
-    TC_IPPROTO = Socket::IPPROTO_IP
-    SO_GET_INFO = IPT_SO_GET_INFO
-    STRUCT_GETINFO = IPTGetInfo
-    STRUCT_GET_ENTRIES = IPTGetEntries
-
-    def initialize(tablename = "filter")
-      @socket = Socket.new(TC_AF, Socket::SOCK_RAW, Socket::IPPROTO_RAW)
-      info = STRUCT_GETINFO.new(:name => tablename)
-      # FIXME: ruby won't let us pass structure to getsockopt!!
-      @socket.getsockopt(TC_IPPROTO, SO_GET_INFO, info)
-      warn "valid_hooks=0x%08x, num_entries=%d, size=%d" % [info.valid_hooks, info.size, info.num_entries]
-    end
+  class Iptables4 < Iptables
+    TABLE_MAXNAMELEN	= IPT_TABLE_MAXNAMELEN
+    TC_AF		= Socket::AF_INET
+    TC_IPPROTO		= Socket::IPPROTO_IP
+    SO_GET_INFO		= IPT_SO_GET_INFO
+    SO_GET_ENTRIES	= IPT_SO_GET_ENTRIES
+    STRUCT_ENTRY	= IPTEntry
+    STRUCT_GETINFO	= IPTGetInfo
+    STRUCT_GET_ENTRIES	= IPTGetEntries
   end
 end
 
 if __FILE__ == $0
-  iptables = Linux::Iptables4.new
+  require 'pp'
+  pp Linux::Iptables4.table("filter").rules
 end

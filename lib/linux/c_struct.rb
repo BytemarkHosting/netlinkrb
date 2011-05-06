@@ -144,7 +144,7 @@ class CStruct
 
     # Apply padding for structure alignment if necessary
     size = info[:size] || [default].pack(pattern).bytesize
-    if align = info[:align]
+    if align = (opt[:align] || info[:align])
       align = size if align == true
       field_pad alignto(@bytesize, align) - @bytesize
     end
