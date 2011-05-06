@@ -1,4 +1,5 @@
 require 'linux/iptables'
+require 'ipaddr'
 
 module Linux
   #-
@@ -6,55 +7,51 @@ module Linux
   #+
 
   # struct ipt_getinfo
-  class IPTGetInfo < CStruct
-    field :name, :pattern=>"Z#{IPT_TABLE_MAXNAMELEN}", :default=>EMPTY_STRING
-    field :valid_hooks, :int
-    #field :hook_entry, :pattern=>"I#{NF_INET_NUMHOOKS}", :default=>[0]*NF_INET_NUMHOOKS
-    #field :underflow, :pattern=>"I#{NF_INET_NUMHOOKS}", :default=>[0]*NF_INET_NUMHOOKS
-    field :hook_entry, :pattern=>"a#{NF_INET_NUMHOOKS*4}", :default=>EMPTY_STRING
-    field :underflow, :pattern=>"a#{NF_INET_NUMHOOKS*4}", :default=>EMPTY_STRING
-    field :num_entries, :int
-    field :size, :int
+  class IPTGetInfo < FFI::Struct
+    layout :name, [:char, IPT_TABLE_MAXNAMELEN],
+      :valid_hooks, :uint,
+      :hook_entry, [:uint, NF_INET_NUMHOOKS],
+      :underflow, [:uint, NF_INET_NUMHOOKS],
+      :num_entries, :uint,
+      :size, :uint
+  end
+
+  class IPTIP < FFI::Struct
+    layout :src, :int32,  # FIXME: needs ntohl
+      :dst, :int32,
+      :smsk, :int32,
+      :dmsk, :int32,
+      :iniface, [:char, IFNAMSIZ],
+      :outiface, [:char, IFNAMSIZ],
+      :iniface_mask, [:uchar, IFNAMSIZ],
+      :outiface_mask, [:uchar, IFNAMSIZ],
+      :proto, :uint16,
+      :flags, :uint8,
+      :invflags, :uint8
+  end
+
+  # struct xt_counters (netfilter/x_tables.h)
+  class XTCounters < FFI::Struct
+    layout :pcnt, :uint64,
+      :bcnt, :uint64
+  end
+    
+  # struct ipt_entry
+  class IPTEntry < FFI::Struct
+    layout :ip, IPTIP,
+      :nfcache, :uint,
+      :target_offset, :uint16,	# size of ipt_entry + matches
+      :next_offset, :uint16,	# size of ipt_entry + matches + target
+      :comefrom, :uint,
+      :counters, XTCounters,
+      :elems, [:uchar, 1]	# should be [:uchar, 0]
   end
 
   # struct ipt_get_entries
-  class IPTGetEntries < CStruct
-    field :name, :pattern=>"Z#{IPT_TABLE_MAXNAMELEN}", :default=>EMPTY_STRING
-    field :size, :uint
-    field :entrytable, :binary, :align=>1.size   # struct ipt_entry entrytable[0]
-  end
-  
-  # struct ipt_entry
-  class IPTEntry < CStruct
-    #### struct ipt_ip
-    field :src, :nl   # struct in_addr
-    field :dst, :nl
-    field :smsk, :nl
-    field :dmsk, :nl
-    field :iniface, :dev_name
-    field :outiface, :dev_name
-    field :iniface_mask, :dev_name
-    field :outiface_mask, :dev_name
-    field :proto, :uint16
-    field :flags, :uchar
-    field :invflags, :uchar
-    ####
-    field :nfcache, :uint
-    field :target_offset, :uint16	# size of ipt_entry + matches
-    field :next_offset, :uint16		# size of ipt_entry + matches + target
-    field :comefrom, :uint
-    ### struct xt_counters
-    field :packet_count, :uint64, :align => 8
-    field :byte_count, :uint64
-    ###
-    field :elems, :binary   # matches (if any), then the target
-
-    def after_parse
-      self.src = src == 0 ? nil : IPAddr.new(src, Socket::AF_INET)
-      self.dst = dst == 0 ? nil : IPAddr.new(dst, Socket::AF_INET)
-      self.smsk = smsk == 0 ? nil : IPAddr.new(smsk, Socket::AF_INET)
-      self.dmsk = dmsk == 0 ? nil : IPAddr.new(dmsk, Socket::AF_INET)
-    end
+  class IPTGetEntries < FFI::Struct
+    layout :name, [:uchar, IPT_TABLE_MAXNAMELEN],
+      :size, :uint,
+      :entrytable, [IPTEntry, 1]	# should be [IPTEntry, 0]
   end
 
   # Class for handling iptables. Note that this doesn't actually use
@@ -72,6 +69,8 @@ module Linux
     STRUCT_ENTRY	= IPTEntry
     STRUCT_GETINFO	= IPTGetInfo
     STRUCT_GET_ENTRIES	= IPTGetEntries
+    # This is a frig because of [1] instead of [0] above
+    STRUCT_GET_ENTRIES_SIZE = IPTGetEntries.offset_of(:entrytable)
   end
 end
 
