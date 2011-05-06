@@ -2,7 +2,7 @@ module Linux
   ERRNO_MAP = {}  #:nodoc:
   Errno.constants.each do |k|
     klass = Errno.const_get(k)
-    next unless klass.is_a?(Class) and Class.const_defined?(:Errno)
+    next unless klass.is_a?(Class) and klass.const_defined?(:Errno)
     ERRNO_MAP[klass::Errno] = klass
   end
 
