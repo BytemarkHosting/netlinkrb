@@ -2,6 +2,7 @@ require 'socket'
 require 'linux/constants'
 require 'linux/error'
 require 'linux/netlink/message'
+require 'linux/sendmsg'
 
 module Linux
 module Netlink
@@ -194,7 +195,8 @@ module Netlink
       if select([@socket], nil, nil, timeout)
         mesg, sender, rflags, controls = @socket.recvmsg
         raise EOFError unless mesg
-        NLSocket.check_sockaddr(sender.to_sockaddr)
+        sender = sender.to_sockaddr if sender.respond_to? :to_sockaddr
+        NLSocket.check_sockaddr(sender)
         mesg
       else
         raise "Timeout"
