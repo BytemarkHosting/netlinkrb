@@ -43,7 +43,7 @@ module Linux
   NLM_F_CREATE		= 0x400
   NLM_F_APPEND		= 0x800
 
-  NLMSG_ALIGNTO		= 4
+  NLMSG_ALIGNTO		= 4	# same on i686 and x86_64
   
   NLMSG_NOOP		= 0x1
   NLMSG_ERROR		= 0x2
@@ -63,7 +63,7 @@ module Linux
   NLA_F_NET_BYTEORDER		= (1 << 14)
   NLA_TYPE_MASK			= ~(NLA_F_NESTED | NLA_F_NET_BYTEORDER)
   
-  NLA_ALIGNTO			= 4
+  NLA_ALIGNTO			= 4	# same on i686 and x86_64
   
   # from linux/rtnetlink.h.
   RTM_NEWLINK		= 16
