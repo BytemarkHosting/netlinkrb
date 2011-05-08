@@ -2,8 +2,24 @@ Ruby Netlink
 ============
 
 This library provides an API for using a Linux Netlink socket, for doing
-things like manipulating IP interfaces, routes and firewall rules
-programmatically.
+things things like manipulating IP interfaces and routes programmatically,
+and capturing packets from ULOG.
+
+Example
+=======
+
+    require 'linux/netlink/route'
+    ip = Linux::Netlink::Route::Socket.new
+
+    # Info about eth0 interface
+    p ip.link["eth0"]
+
+    # Addresses on eth0 interface
+    ip.addr.list(:index=>"eth0") do |addr|
+      puts addr.address
+    end
+
+See the examples/ and test/ directories for more examples.
 
 Requirements
 ============
@@ -75,8 +91,8 @@ TODO
 ====
 
 * Exception hierarchy
-* Unit tests
-* Integration tests
+* More tests
+* More netlink protocols
 
 Copyright
 =========
