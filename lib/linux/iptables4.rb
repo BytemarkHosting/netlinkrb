@@ -7,7 +7,7 @@ module Linux
   #+
 
   # struct ipt_getinfo
-  class IPTGetInfo < FFI::Struct
+  class IPTGetInfo < FFI::AStruct
     layout :name, [:char, IPT_TABLE_MAXNAMELEN],
       :valid_hooks, :uint,
       :hook_entry, [:uint, NF_INET_NUMHOOKS],
@@ -16,7 +16,7 @@ module Linux
       :size, :uint
   end
 
-  class IPTIP < FFI::Struct
+  class IPTIP < FFI::AStruct
     layout :src, :int32,  # FIXME: needs ntohl
       :dst, :int32,
       :smsk, :int32,
@@ -31,13 +31,13 @@ module Linux
   end
 
   # struct xt_counters (netfilter/x_tables.h)
-  class XTCounters < FFI::Struct
+  class XTCounters < FFI::AStruct
     layout :pcnt, :uint64,
       :bcnt, :uint64
   end
     
   # struct ipt_entry
-  class IPTEntry < FFI::Struct
+  class IPTEntry < FFI::AStruct
     layout :ip, IPTIP,
       :nfcache, :uint,
       :target_offset, :uint16,	# size of ipt_entry + matches
@@ -48,7 +48,7 @@ module Linux
   end
 
   # struct ipt_get_entries
-  class IPTGetEntries < FFI::Struct
+  class IPTGetEntries < FFI::AStruct
     layout :name, [:uchar, IPT_TABLE_MAXNAMELEN],
       :size, :uint,
       :entrytable, [IPTEntry, 1]	# should be [IPTEntry, 0]

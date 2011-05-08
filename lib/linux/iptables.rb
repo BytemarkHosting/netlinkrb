@@ -6,13 +6,15 @@ require 'ffi'
 # - robust pre-existing code
 # - good handling of nested structures and nested arrays
 # Bad things about FFI::Struct:
-# - no Hash initialization:  MyStruct.new(:foo=>1, :bar=>2)
-# - no accessor methods      m.foo = 1
+# - no Hash initialization:  MyStruct.new(:foo=>1, :bar=>2)  [*]
+# - no accessor methods      m.foo = 1  [*]
 # - can't do zero size array at end of struct: layout :foo, [Foo, 0]
 # - no network-order fields? (in_addr)
-# - no decent inspect (fix this below)
+# - no decent inspect [*]
+# [*] Fixed below in FFI::AStruct
 
-class FFI::Struct
+class FFI::AStruct < FFI::Struct
+  # https://github.com/ffi/ffi/issues/102
   def inspect
     res = "#<#{self.class}"
     members.zip(values).each do |m,v|
@@ -20,8 +22,34 @@ class FFI::Struct
     end
     res << ">"
   end
+
+  # https://github.com/ffi/ffi/issues/106
+  def initialize(*args)
+    if args.first.is_a? Hash
+      super(nil, *args[1..-1])
+      src.each { |k,v| self[k] = v }
+    else
+      super
+    end
+  end
+
+  # https://github.com/ffi/ffi/issues/107
+  def self.layout(*fields)
+    super
+    fields.each_slice(2) do |name,type|
+      # Structure building is screwed up if there's a 'size' member!
+      next if instance_methods.find { |m| m.to_sym == name }
+      define_method name do
+        self[name]
+      end
+      define_method "#{name}=" do |v|
+        self[name] = v
+      end
+    end
+  end
 end
 
+# https://github.com/ffi/ffi/issues/102
 class FFI::StructLayout::CharArray
   def inspect
     to_s.inspect
