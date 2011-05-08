@@ -28,7 +28,7 @@ module Netlink
     field :type, :ushort			# ARPHRD_*
     field :index, :int
     field :flags, :uint				# IFF_*
-    field :change, :uint, :default=>0xffffffff	# flags to change
+    field :change, :uint			# flags to change
     rtattr :address, IFLA_ADDRESS, :l2addr
     rtattr :broadcast, IFLA_BROADCAST, :l2addr
     rtattr :ifname, IFLA_IFNAME, :cstring

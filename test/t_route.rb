@@ -72,10 +72,6 @@ class TestAddr < Test::Unit::TestCase
       @ip.vlan.list(:link=>"lo").map { |x| x.linkinfo.data.id }
     end
   
-    # FIXME: On 10.04.2 LTS (32 and 64 bit) this gives Errno::EOPNOTSUPP; but
-    #    ip link add link lo type vlan id 1234
-    #    ip link delete vlan0
-    # both work fine.
     test "Add and remove vlan" do
       begin
         @ip.vlan.delete(:link=>"lo", :vlan_id=>1234)
