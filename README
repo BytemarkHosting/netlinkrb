@@ -2,8 +2,8 @@ Ruby Netlink
 ============
 
 This library provides an API for using a Linux Netlink socket, for doing
-things things like manipulating IP interfaces and routes programmatically,
-and capturing packets from ULOG.
+things like manipulating IP interfaces and routes programmatically, and
+capturing packets from ULOG.
 
 Example
 =======

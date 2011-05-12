@@ -1,0 +1,5 @@
+linux-netlink-ruby (0.10-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Thu, 12 May 2011 17:17:45 +0100
