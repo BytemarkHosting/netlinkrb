@@ -3,7 +3,7 @@ Maintainer: Matthew Bloch <matthew@bytemark.co.uk>
 Uploaders: Patrick J Cherry <patrick@bytemark.co.uk>
 Section: ruby
 Priority: optional
-Build-Depends:  debhelper (>= 7), cdbs, ruby1.8, ruby1.9, ruby-pkg-tools
+Build-Depends:  debhelper (>= 7), cdbs, ruby1.8, ruby1.9.1, ruby-pkg-tools
 Standards-Version: 3.8.0
 
 Package: liblinux-netlink-ruby
