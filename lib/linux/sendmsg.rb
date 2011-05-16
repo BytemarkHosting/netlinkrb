@@ -1,8 +1,13 @@
 # Patchup to add Socket#sendmsg and Socket#recvmsg for ruby 1.8
 
 if BasicSocket.instance_methods.grep(/^sendmsg$/).empty?
-  require 'ffi'
+  begin
+    require 'ffi'
+  rescue LoadError
+    require('rubygems') ? retry : raise
+  end
 
+    
   class BasicSocket
     module FFIExt
       extend FFI::Library
