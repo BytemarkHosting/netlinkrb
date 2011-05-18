@@ -29,6 +29,17 @@ module Netlink
       raise "Bad AF #{af}!" if af != Socket::AF_NETLINK
       raise "Bad PID #{pid}!" if pid != 0
     end
+    
+    # Create a new Netlink socket, and pass it to the given block.  Ensures
+    # the the socket is closed when we're finished.
+    def self.open(opt={})
+      sock = self.new(opt)
+      begin
+        yield(sock)
+      ensure
+        sock.close
+      end
+    end
 
     attr_accessor :socket	# the underlying Socket
     attr_accessor :seq		# the last sequence number used
@@ -63,6 +74,11 @@ module Netlink
           warn "Discarding junk message (#{type}, #{flags}, #{seq}, #{pid}) #{msg.inspect}"
         }
       end
+    end
+    
+    # Close the Netlink socket
+    def close
+      @socket.close
     end
 
     # Generate the next sequence number

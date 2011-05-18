@@ -111,10 +111,20 @@ module Netlink
         ipaddr_modify(RTM_DELADDR, 0, opt)
       end
       
+      SCOPES = {
+        :global => 0,
+        :nowhere => 1,
+        :host => 254,
+        :link => 253,
+        :site => 200
+      }
+      
       def ipaddr_modify(code, flags, msg) #:nodoc:
         msg = IFAddr.new(msg)
         msg.index = index(msg.index) unless msg.index.is_a?(Integer)
         msg.address ||= msg.local
+        msg.scope = SCOPES[msg.scope.to_s.downcase.to_sym] if 
+          msg.scope && !msg.scope.is_a?(Integer)
         # Note: IPAddr doesn't support addresses off the subnet base,
         # so there's no point trying to set msg.prefixlen from the IPAddr mask
         @rtsocket.cmd code, msg, flags|NLM_F_REQUEST
