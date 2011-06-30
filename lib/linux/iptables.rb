@@ -1,6 +1,12 @@
 require 'socket'
 require 'linux/constants'
-require 'ffi'
+
+begin
+  require 'ffi'
+rescue LoadError
+  require('rubygems') ? retry : raise
+end
+
 
 # Good things about FFI::Struct:
 # - robust pre-existing code
