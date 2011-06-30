@@ -18,7 +18,7 @@ Description: Netlink socket library for Ruby
 
 Package: liblinux-netlink-ruby1.8
 Architecture: all
-Depends: ruby1.8 (>= 1.8.7), libffi-ruby1.8, ${misc:Depends}
+Depends: ruby1.8 (>= 1.8.7), libffi-ruby1.8, gcc, ${misc:Depends}
 Description: Netlink socket library for Ruby 1.8
  This library provides an API for using a Linux Netlink socket, for doing
  things like manipulating IP interfaces and routes programmatically, and
@@ -29,7 +29,7 @@ Description: Netlink socket library for Ruby 1.8
 
 Package: liblinux-netlink-ruby1.9.1
 Architecture: all
-Depends: ruby1.9.1, libffi-ruby1.9.1, ${misc:Depends}
+Depends: ruby1.9.1, libffi-ruby1.9.1, gcc, ${misc:Depends}
 Description: Netlink socket library for Ruby 1.9.1
  This library provides an API for using a Linux Netlink socket, for doing
  things like manipulating IP interfaces and routes programmatically, and

@@ -1,3 +1,9 @@
+linux-netlink-ruby (0.10-2) unstable; urgency=low
+
+  * Added NlSocket.open and scope handling.
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 18 May 2011 15:27:00 +0100
+
 linux-netlink-ruby (0.10-1) unstable; urgency=low
 
   * Initial release.
