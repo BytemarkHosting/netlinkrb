@@ -229,6 +229,7 @@ module Linux
   IFLA_STATS64		= 23
   IFLA_VF_PORTS		= 24
   IFLA_PORT_SELF	= 25
+  IFLA_AF_SPEC          = 26
 
   IFLA_INFO_UNSPEC	= 0
   IFLA_INFO_KIND	= 1	# "vlan", "gre" etc

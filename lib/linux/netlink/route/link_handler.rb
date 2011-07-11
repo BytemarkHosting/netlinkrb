@@ -60,6 +60,7 @@ module Netlink
         :unpack => lambda { |str,obj| LinkStats.new(*(str.unpack("Q23"))) }
     rtattr :vf_ports, IFLA_VF_PORTS
     rtattr :port_self, IFLA_PORT_SELF
+    rtattr :af_spec, IFLA_AF_SPEC
     
     # Return the best stats available (64bit or 32bit)
     def stats
