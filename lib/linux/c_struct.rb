@@ -79,7 +79,13 @@ class CStruct
   define_type :ns,      :pattern => "n",  :align => true
   define_type :nl,      :pattern => "N",  :align => true
   
-  SIZEOF_SIZE_T = Integer(`echo __SIZEOF_SIZE_T__ | gcc -E -P -`) rescue 1.size
+  begin
+    require 'linux/c_struct_sizeof_size_t.rb'
+  rescue LoadError
+    warn "Falling back to gcc to determine sizeof size_t." if $VERBOSE
+    SIZEOF_SIZE_T = Integer(`echo __SIZEOF_SIZE_T__ | gcc -E -P -`) rescue 1.size
+  end
+
   define_type :size_t,
     case SIZEOF_SIZE_T
     when 8

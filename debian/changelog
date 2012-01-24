@@ -1,3 +1,10 @@
+linux-netlink-ruby (0.10-4) unstable; urgency=low
+
+  * Removed dependency on gcc, in favour of having arch-dependent packages
+    which rely on build-time ascertation of sizeof size_t.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 24 Jan 2012 15:56:46 +0000
+
 linux-netlink-ruby (0.10-3) unstable; urgency=low
 
   * Updated version number to cover the previous changes.
