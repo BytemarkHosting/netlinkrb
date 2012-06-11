@@ -61,6 +61,8 @@ module Netlink
     rtattr :vf_ports, IFLA_VF_PORTS
     rtattr :port_self, IFLA_PORT_SELF
     rtattr :af_spec, IFLA_AF_SPEC
+    rtattr :group, IFLA_GROUP
+    rtattr :net_ns_fd, IFLA_NET_NS_FD
     
     # Return the best stats available (64bit or 32bit)
     def stats
