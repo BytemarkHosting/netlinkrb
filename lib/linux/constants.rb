@@ -28,11 +28,14 @@ module Linux
   NETLINK_GENERIC	= 16
   NETLINK_SCSITRANSPORT	= 18
   NETLINK_ECRYPTFS	= 19
-  
+  NETLINK_RDMA      = 20
+  NETLINK_CRYPTO    = 21  
+ 
   NLM_F_REQUEST		= 1
   NLM_F_MULTI		= 2
   NLM_F_ACK		= 4
   NLM_F_ECHO		= 8
+  NLM_F_DUMP_INTR = 16
   NLM_F_ROOT		= 0x100
   NLM_F_MATCH		= 0x200
   NLM_F_ATOMIC		= 0x400
@@ -184,6 +187,7 @@ module Linux
   RTA_FLOW		= 11
   RTA_CACHEINFO		= 12
   RTA_TABLE		= 15
+  RTA_MARK		= 16
   
   # Keys for RT#metrics
   RTAX_UNSPEC		= 0
@@ -229,7 +233,9 @@ module Linux
   IFLA_STATS64		= 23
   IFLA_VF_PORTS		= 24
   IFLA_PORT_SELF	= 25
-  IFLA_AF_SPEC          = 26
+  IFLA_AF_SPEC    = 26
+  IFLA_GROUP      = 27
+  IFLA_NET_NS_FD  = 28
 
   IFLA_INFO_UNSPEC	= 0
   IFLA_INFO_KIND	= 1	# "vlan", "gre" etc
@@ -252,6 +258,7 @@ module Linux
   MACVLAN_MODE_PRIVATE	= 1
   MACVLAN_MODE_VEPA	= 2
   MACVLAN_MODE_BRIDGE	= 4
+  MACVLAN_MODE_PASSTHRU	= 8
   
   # linux/if_vlan.h
   VLAN_FLAG_REORDER_HDR		= 0x1
