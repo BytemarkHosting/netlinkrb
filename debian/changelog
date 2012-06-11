@@ -1,8 +1,9 @@
 linux-netlink-ruby (0.10-5) stable; urgency=low
 
   * Updated rattr constants to work with linux 3.2.
+  * Updated link handler to have new rattrs. 
 
- -- Patrick J Cherry <patrick@bytemark.co.uk>  Mon, 11 Jun 2012 10:39:19 +0100
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Mon, 11 Jun 2012 10:53:37 +0100
 
 linux-netlink-ruby (0.10-4) unstable; urgency=low
 
