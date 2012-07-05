@@ -13,7 +13,8 @@ module Netlink
     autoload :VlanHandler, 'linux/netlink/route/vlan_handler'
     autoload :AddrHandler, 'linux/netlink/route/addr_handler'
     autoload :RouteHandler, 'linux/netlink/route/route_handler'
-    
+    autoload :RuleHandler, 'linux/netlink/route/rule_handler'
+
     # This class formats and receives messages using NETLINK_ROUTE protocol
     class Socket < NLSocket
       def initialize(opt={})
@@ -24,20 +25,24 @@ module Netlink
       def link
         @link ||= LinkHandler.new(self)
       end
-      
+
       # Return a VlanHandler object for manipulating vlans
       def vlan
         @vlan ||= VlanHandler.new(self)
       end
-      
+
       # Return a AddrHandler object for manipulating addresses
       def addr
         @addr ||= AddrHandler.new(self)
       end
-      
+
       # Return a RT object for manipulating routes
       def route
         @route ||= RouteHandler.new(self)
+      end
+
+      def rule
+        @rule ||= RuleHandler.new(self)
       end
 
       # Convert an interface index into name string, or nil if the
@@ -52,7 +57,7 @@ module Netlink
         return nil if index.nil? || index == 0
         link[index].ifname
       end
-      
+
       # Convert an interface name into index. Returns 0 for nil or empty
       # string. Otherwise raises an exception for unknown values.
       def index(name)
@@ -69,3 +74,4 @@ module Netlink
   end
 end
 end # module Linux
+

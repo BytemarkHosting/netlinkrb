@@ -8,7 +8,8 @@ module Netlink
 
   # struct rtmsg
   class RT < RtattrMessage
-    code RTM_NEWROUTE, RTM_DELROUTE, RTM_GETROUTE
+    code RTM_NEWROUTE, RTM_DELROUTE, RTM_GETROUTE,
+         RTM_NEWRULE,  RTM_DELRULE,  RTM_GETRULE
 
     field :family, :uchar			# Socket::AF_*
     field :dst_len, :uchar
@@ -59,7 +60,7 @@ module Netlink
       def clear_cache
         @route = nil
       end
-      
+
       # Send message to download the kernel routing table. Either returns an
       # array of Netlink::RT objects, or yields them to the supplied block.
       #
@@ -98,7 +99,7 @@ module Netlink
         filter(:oif) { |o,v| o.oif == v }
         filter(:iif) { |o,v| o.iif == v }
       end
-      
+
       # Return the memoized route table, filtered according to
       # the optional criteria. Examples:
       #    :family => Socket::AF_INET
@@ -117,7 +118,7 @@ module Netlink
         filter_list(@route, filter, &blk)
       end
       alias :each :list
-      
+
       def add(opt)
         iproute_modify(RTM_NEWROUTE, NLM_F_CREATE|NLM_F_EXCL, opt)
       end
@@ -125,7 +126,7 @@ module Netlink
       def change(opt)
         iproute_modify(RTM_NEWROUTE, NLM_F_REPLACE, opt)
       end
-      
+
       def replace(opt)
         iproute_modify(RTM_NEWROUTE, NLM_F_CREATE|NLM_F_REPLACE, opt)
       end
@@ -154,10 +155,10 @@ module Netlink
         msg.oif = index(msg.oif) if msg.oif.is_a?(String)
         @rtsocket.cmd RTM_GETROUTE, msg, NLM_F_REQUEST, RTM_NEWROUTE
       end
-      
+
       def iproute_modify(code, flags, msg) #:nodoc:
         msg = RT.new(msg)
-        
+
         if code != RTM_DELROUTE
           msg.protocol ||= RTPROT_BOOT
           msg.type ||= RTN_UNICAST
@@ -197,3 +198,4 @@ module Netlink
   end
 end
 end # module Linux
+
