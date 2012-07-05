@@ -1,3 +1,9 @@
+linux-netlink-ruby (0.10-6) stable; urgency=low
+
+  * Add ip rule support
+
+ -- Nick Thomas <nick@bytemark.co.uk>  Thu,  5 Jul 2012 15:19:42 +0100
+
 linux-netlink-ruby (0.10-5) stable; urgency=low
 
   * Updated rattr constants to work with linux 3.2.
