@@ -8,7 +8,7 @@ Standards-Version: 3.8.0
 
 Package: liblinux-netlink-ruby
 Architecture: all
-Depends: liblinux-netlink-ruby1.8 | liblinux-netlink-ruby1.9, ${misc:Depends}
+Depends: liblinux-netlink-ruby1.8 | liblinux-netlink-ruby1.9.1, ${misc:Depends}
 Description: Netlink socket library for Ruby
  This library provides an API for using a Linux Netlink socket, for doing
  things like manipulating IP interfaces and routes programmatically, and
