@@ -1,4 +1,4 @@
-Source: linux-netlink-ruby
+Source: ruby-linux-netlink
 Maintainer: Matthew Bloch <matthew@bytemark.co.uk>
 Uploaders: Patrick J Cherry <patrick@bytemark.co.uk>
 Section: ruby
