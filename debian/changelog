@@ -1,8 +1,15 @@
+linux-netlink-ruby (0.11-1+wheezy2) stable; urgency=low
+
+  * Switch to dpkg-source 3.0 (quilt) format.
+  * Added patch to remove rubygems requires.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Fri, 05 Jul 2013 14:16:30 +0100
+
 linux-netlink-ruby (0.11-1+wheezy1) stable; urgency=low
 
   * New upstream version, repackaged for wheezy.
 
- -- Patrick J Cherry <patrick@bytemark.co.uk>  Fri, 05 Jul 2013 13:57:06 +0100
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Fri, 05 Jul 2013 14:16:05 +0100
 
 linux-netlink-ruby (0.10-6) stable; urgency=low
 

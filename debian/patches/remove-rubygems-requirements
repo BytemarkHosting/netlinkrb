@@ -1,0 +1,32 @@
+Removed "require rubygems" from everywhere.
+--- a/lib/linux/iptables.rb
++++ b/lib/linux/iptables.rb
+@@ -1,11 +1,6 @@
+ require 'socket'
+ require 'linux/constants'
+-
+-begin
+-  require 'ffi'
+-rescue LoadError
+-  require('rubygems') ? retry : raise
+-end
++require 'ffi'
+ 
+ 
+ # Good things about FFI::Struct:
+--- a/lib/linux/sendmsg.rb
++++ b/lib/linux/sendmsg.rb
+@@ -1,12 +1,7 @@
+ # Patchup to add Socket#sendmsg and Socket#recvmsg for ruby 1.8
+ 
+ if BasicSocket.instance_methods.grep(/^sendmsg$/).empty?
+-  begin
+-    require 'ffi'
+-  rescue LoadError
+-    require('rubygems') ? retry : raise
+-  end
+-
++  require 'ffi'
+     
+   class BasicSocket
+     module FFIExt
