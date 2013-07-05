@@ -63,7 +63,9 @@ module Netlink
     rtattr :af_spec, IFLA_AF_SPEC
     rtattr :group, IFLA_GROUP
     rtattr :net_ns_fd, IFLA_NET_NS_FD
-    
+    rtattr :ext_mask, IFLA_EXT_MASK   
+    rtattr :promiscuity, IFLA_PROMISCUITY
+ 
     # Return the best stats available (64bit or 32bit)
     def stats
       stats64 || stats32

@@ -236,6 +236,8 @@ module Linux
   IFLA_AF_SPEC    = 26
   IFLA_GROUP      = 27
   IFLA_NET_NS_FD  = 28
+  IFLA_EXT_MASK   = 29 
+  IFLA_PROMISCUITY = 30
 
   IFLA_INFO_UNSPEC	= 0
   IFLA_INFO_KIND	= 1	# "vlan", "gre" etc
