@@ -210,8 +210,16 @@ module Netlink
         iplink_modify(RTM_NEWLINK, NLM_F_CREATE|NLM_F_EXCL, opt)
       end
 
+
+      # This will submit a change.  If the kernel replies "protocol not
+      # supported" resend the request with a SETLINK instead of NEWLINK flag.
+      #
       def change(opt)
-        iplink_modify(RTM_NEWLINK, NLM_F_REPLACE, opt)
+        begin
+          iplink_modify(RTM_NEWLINK, NLM_F_REPLACE, opt)
+        rescue Errno::EOPNOTSUPP
+          iplink_modify(RTM_SETLINK, NLM_F_REPLACE, opt)
+        end
       end
       
       def replace(opt)
