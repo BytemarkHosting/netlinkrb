@@ -1,3 +1,9 @@
+linux-netlink-ruby (0.11-1+squeeze1) oldstable; urgency=low
+
+  * New upstream version.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Fri, 05 Jul 2013 13:52:09 +0100
+
 linux-netlink-ruby (0.10-6) stable; urgency=low
 
   * Add ip rule support
