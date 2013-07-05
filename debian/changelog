@@ -1,8 +1,8 @@
-linux-netlink-ruby (0.11-1+squeeze1) oldstable; urgency=low
+linux-netlink-ruby (0.11-1+wheezy1) stable; urgency=low
 
-  * New upstream version.
+  * New upstream version, repackaged for wheezy.
 
- -- Patrick J Cherry <patrick@bytemark.co.uk>  Fri, 05 Jul 2013 13:52:09 +0100
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Fri, 05 Jul 2013 13:57:06 +0100
 
 linux-netlink-ruby (0.10-6) stable; urgency=low
 
