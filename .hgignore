@@ -1,4 +1,6 @@
-^debian/liblinux-netlink-ruby
+^debian/liblinux-netlink-ruby(1.8|1.9.1)?$
 ~$
 ^.config-liblinux-netlink-ruby
 ^debian/files$
+^debian/.*\.substvars$
+^debian/.*\.debhelper.log$
