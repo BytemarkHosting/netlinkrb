@@ -1,4 +1,3 @@
-^debian/liblinux-netlink-ruby
 ~$
 ^.config-liblinux-netlink-ruby
-^debian/files$
+^debian/$
