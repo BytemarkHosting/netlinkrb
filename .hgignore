@@ -1,3 +1,7 @@
+^debian/ruby-linux-netlink$
 ~$
 ^.config-liblinux-netlink-ruby
-^debian/$
+^.pc/
+^debian/files$
+^debian/.*\.substvars$
+^debian/.*\.debhelper.log$
