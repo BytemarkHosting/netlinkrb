@@ -5,7 +5,7 @@ $:.unshift lib unless $:.include? lib
 
 Gem::Specification.new do |s|
   s.name = "netlinkrb"
-  s.version = "0.12"
+  s.version = "0.13"
   s.platform = Gem::Platform::RUBY
   s.authors = ["Brian Candler", "Matthew Bloch", "Patrick Cherry", "Alex Young"]
   s.email = ["matthew@bytemark.co.uk"]
