@@ -1,4 +1,4 @@
-linux-netlink-ruby (0.11-1+squeeze1) oldstable; urgency=low
+linux-netlink-ruby (0.12-1+squeeze1) oldstable; urgency=low
 
   * New upstream version.
 
