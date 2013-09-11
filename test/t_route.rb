@@ -16,11 +16,12 @@ class TestAddr < Test::Unit::TestCase
   context "With netlink route socket" do
     setup do
       @ip = $ip
+      @ifname = nil
     end
 
     teardown do
       begin
-        delete_test_interface
+        delete_test_interface(@ifname)
       rescue KeyError, IndexError
         # Do nothing
       end
@@ -42,27 +43,23 @@ class TestAddr < Test::Unit::TestCase
         # Ugh, fall back to eth0
         ifname = "eth0"
       rescue Errno::EPERM => err
-        if self.respond_to?(:skip)
-          skip err.to_s
-        else
-          puts "Skipping #{self.method_name} -- #{err.to_s}"
-          return nil
-        end
+        do_skip err.to_s
       end
 
       return ifname
     end
 
     def set_interface_up(ifname)
-        link = @ip.link.list.find{|l| l.ifname == ifname}
+      link = @ip.link.list.find{|l| l.ifname == ifname}
+      return unless link.linkinfo and "dummy" == link.linkinfo.kind
 
-        #
-        # Bring the link up
-        #
-        @ip.link.change(
-         :index => link.index,
-         :flags => link.flags | Linux::IFF_UP | Linux::IFF_RUNNING
-       )
+      #
+      # Bring the link up
+      #
+      @ip.link.change(
+        :index => link.index,
+        :flags => link.flags | Linux::IFF_UP | Linux::IFF_RUNNING
+      )
 
       link = @ip.link.list.find{|l| l.ifname == ifname}
 
@@ -74,6 +71,7 @@ class TestAddr < Test::Unit::TestCase
       link = @ip.link.list.find{|l| l.ifname == ifname}
 
       return if link.nil?
+      return unless link.linkinfo and "dummy" == link.linkinfo.kind
       return unless link.flags == (link.flags | Linux::IFF_UP | Linux::IFF_RUNNING)
 
       #
@@ -90,8 +88,10 @@ class TestAddr < Test::Unit::TestCase
       assert_equal(0, link.flags & Linux::IFF_RUNNING, "Link still has the IFF_RUNNING flag set") 
     end
 
-    def delete_test_interface(ifname = "test_#{$$}")
-      return unless ifname =~ /test_/
+    def delete_test_interface(ifname) 
+      unless @ip.link[ifname] and @ip.link[ifname].linkinfo and "dummy" == @ip.link[ifname].linkinfo.kind
+        return nil
+      end
 
       begin
         set_interface_down(ifname)
@@ -99,12 +99,25 @@ class TestAddr < Test::Unit::TestCase
         @ip.link.delete(:index => ifname)
       end
     end
-      
-    test "Add and remove dummy interface" do
-      ifname = create_test_interface
-      return if ifname.nil?
 
-      delete_test_interface(ifname)
+    def do_skip(msg)
+      if self.respond_to?(:skip)
+        skip msg
+      else
+        puts "Skipping #{self.method_name} -- #{msg}"
+      end
+      return nil
+    end
+
+    test "Add and remove dummy interface" do
+      @ifname = create_test_interface
+      return if @ifname.nil?
+
+      unless @ip.link[@ifname] and @ip.link[@ifname].linkinfo and "dummy" == @ip.link[@ifname].linkinfo.kind
+        return do_skip("Could not create dummy interface")
+      end
+
+      delete_test_interface(@ifname)
     end
     
     def addrlist(opt = {:index=>"lo"})
@@ -112,23 +125,23 @@ class TestAddr < Test::Unit::TestCase
     end
 
     def add_and_remove_addr(testaddr, pfx)
-      ifname = create_test_interface
-      return if ifname.nil?
+      @ifname = create_test_interface
+      return if @ifname.nil?
 
-      addrs1 = addrlist({:index => ifname})
+      addrs1 = addrlist({:index => @ifname})
       assert !addrs1.include?(testaddr)
 
-      @ip.addr.add(:index=>ifname, :local=>testaddr, :prefixlen=>pfx)
+      @ip.addr.add(:index=>@ifname, :local=>testaddr, :prefixlen=>pfx)
       assert_raises(Errno::EEXIST) {
-        @ip.addr.add(:index=>ifname, :local=>testaddr, :prefixlen=>pfx)
+        @ip.addr.add(:index=>@ifname, :local=>testaddr, :prefixlen=>pfx)
       }
 
-      addrs2 = addrlist({:index => ifname})
+      addrs2 = addrlist({:index => @ifname})
       assert addrs2.include?(testaddr), "#{addrs2.inspect} doesn't include #{testaddr}"
       
-      @ip.addr.delete(:index=>ifname, :local=>testaddr, :prefixlen=>pfx)
+      @ip.addr.delete(:index=>@ifname, :local=>testaddr, :prefixlen=>pfx)
       
-      addrs3 = addrlist({:index => ifname})
+      addrs3 = addrlist({:index => @ifname})
       assert_equal addrs1, addrs3
     end
 
@@ -163,22 +176,21 @@ class TestAddr < Test::Unit::TestCase
     end
   
     test "Add and remove vlan" do
-      ifname = create_test_interface
-      return if ifname.nil?
+      @ifname = create_test_interface
+      return if @ifname.nil?
 
-      vlans1 = vlanlist(ifname)
+      vlans1 = vlanlist(@ifname)
       assert !vlans1.include?(1234)
 
-      @ip.vlan.add(:link=>ifname, :vlan_id=>1234)
+      @ip.vlan.add(:link=>@ifname, :vlan_id=>1234)
 
-      vlans2 = vlanlist(ifname)
+      vlans2 = vlanlist(@ifname)
       assert vlans2.include?(1234)
 
-      @ip.vlan.delete(:link=>ifname, :vlan_id=>1234)
+      @ip.vlan.delete(:link=>@ifname, :vlan_id=>1234)
 
-      vlans3 = vlanlist(ifname)
+      vlans3 = vlanlist(@ifname)
       assert_equal vlans1, vlans3
-      @ip.link.delete(:index => ifname)
     end
 
     def routes
@@ -196,12 +208,12 @@ class TestAddr < Test::Unit::TestCase
     end
     
     def add_and_remove_route(info)
-      ifname = create_test_interface
-      return if ifname.nil?
+      @ifname = create_test_interface
+      return if @ifname.nil?
 
-      set_interface_up(ifname) 
+      set_interface_up(@ifname) 
 
-      info[:oif] = ifname
+      info[:oif] = @ifname
       ifidx = @ip.link.list.find{|x| x.ifname == info[:oif]}.index
 
       assert_equal 0, routes.select { |x| x == [info[:dst], info[:dst_len], ifidx] }.size
