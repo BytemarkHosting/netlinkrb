@@ -38,6 +38,9 @@ class TestAddr < Test::Unit::TestCase
             :kind => "dummy"
           )
         )
+      rescue Errno::EOPNOTSUPP
+        # Ugh, fall back to eth0
+        ifname = "eth0"
       rescue Errno::EPERM => err
         if self.respond_to?(:skip)
           skip err.to_s
@@ -88,6 +91,8 @@ class TestAddr < Test::Unit::TestCase
     end
 
     def delete_test_interface(ifname = "test_#{$$}")
+      return unless ifname =~ /test_/
+
       begin
         set_interface_down(ifname)
       ensure
