@@ -51,6 +51,8 @@ class TestAddr < Test::Unit::TestCase
 
     def set_interface_up(ifname)
       link = @ip.link.list.find{|l| l.ifname == ifname}
+
+      return if link.nil?
       return unless link.linkinfo and "dummy" == link.linkinfo.kind
 
       #
@@ -112,8 +114,11 @@ class TestAddr < Test::Unit::TestCase
     test "Add and remove dummy interface" do
       @ifname = create_test_interface
       return if @ifname.nil?
+      
+      link = @ip.link.list.find{|x| x.ifname == @ifname} 
+      return if link.nil?
 
-      unless @ip.link[@ifname] and @ip.link[@ifname].linkinfo and "dummy" == @ip.link[@ifname].linkinfo.kind
+      unless link.linkinfo and "dummy" == link.linkinfo.kind
         return do_skip("Could not create dummy interface")
       end
 
@@ -128,6 +133,9 @@ class TestAddr < Test::Unit::TestCase
       @ifname = create_test_interface
       return if @ifname.nil?
 
+      link = @ip.link.list.find{|x| x.ifname == @ifname} 
+      return if link.nil?
+      
       addrs1 = addrlist({:index => @ifname})
       assert !addrs1.include?(testaddr)
 
@@ -179,6 +187,9 @@ class TestAddr < Test::Unit::TestCase
       @ifname = create_test_interface
       return if @ifname.nil?
 
+      link = @ip.link.list.find{|x| x.ifname == @ifname}
+      return if link.nil?
+
       vlans1 = vlanlist(@ifname)
       assert !vlans1.include?(1234)
 
@@ -214,7 +225,11 @@ class TestAddr < Test::Unit::TestCase
       set_interface_up(@ifname) 
 
       info[:oif] = @ifname
-      ifidx = @ip.link.list.find{|x| x.ifname == info[:oif]}.index
+
+      link = @ip.link.list.find{|x| x.ifname == info[:oif]}
+      return if link.nil?
+
+      ifidx = link.index
 
       assert_equal 0, routes.select { |x| x == [info[:dst], info[:dst_len], ifidx] }.size
 
