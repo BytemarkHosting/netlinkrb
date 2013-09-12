@@ -65,6 +65,9 @@ module Netlink
     rtattr :net_ns_fd, IFLA_NET_NS_FD
     rtattr :ext_mask, IFLA_EXT_MASK   
     rtattr :promiscuity, IFLA_PROMISCUITY
+    rtattr :num_tx_queues, IFLA_NUM_TX_QUEUES
+    rtattr :num_rx_queues, IFLA_NUM_RX_QUEUES
+    rtattr :carrier, IFLA_CARRIER
  
     # Return the best stats available (64bit or 32bit)
     def stats
