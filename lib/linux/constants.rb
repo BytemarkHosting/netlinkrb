@@ -29,8 +29,8 @@ module Linux
   NETLINK_SCSITRANSPORT	= 18
   NETLINK_ECRYPTFS	= 19
   NETLINK_RDMA      = 20
-  NETLINK_CRYPTO    = 21  
- 
+  NETLINK_CRYPTO    = 21
+
   NLM_F_REQUEST		= 1
   NLM_F_MULTI		= 2
   NLM_F_ACK		= 4
@@ -40,72 +40,74 @@ module Linux
   NLM_F_MATCH		= 0x200
   NLM_F_ATOMIC		= 0x400
   NLM_F_DUMP		= (NLM_F_ROOT|NLM_F_MATCH)
-  
+
   NLM_F_REPLACE		= 0x100
   NLM_F_EXCL		= 0x200
   NLM_F_CREATE		= 0x400
   NLM_F_APPEND		= 0x800
 
   NLMSG_ALIGNTO		= 4	# same on i686 and x86_64
-  
+
   NLMSG_NOOP		= 0x1
   NLMSG_ERROR		= 0x2
   NLMSG_DONE		= 0x3
   NLMSG_OVERRUN		= 0x4
-  
+
   NETLINK_ADD_MEMBERSHIP	= 1
   NETLINK_DROP_MEMBERSHIP	= 2
   NETLINK_PKTINFO		= 3
   NETLINK_BROADCAST_ERROR	= 4
   NETLINK_NO_ENOBUFS		= 5
-  
+  NETLINK_RX_RING	= 6
+  NETLINK_TX_RING = 7
+
   NETLINK_UNCONNECTED		= 0
   NETLINK_CONNECTED		= 1
-  
+
   NLA_F_NESTED			= (1 << 15)
   NLA_F_NET_BYTEORDER		= (1 << 14)
   NLA_TYPE_MASK			= ~(NLA_F_NESTED | NLA_F_NET_BYTEORDER)
-  
+
   NLA_ALIGNTO			= 4	# same on i686 and x86_64
-  
+
   # from linux/rtnetlink.h.
   RTM_NEWLINK		= 16
   RTM_DELLINK		= 17
   RTM_GETLINK		= 18
   RTM_SETLINK		= 19
-  
-  RTM_NEWADDR		= 20     
+
+  RTM_NEWADDR		= 20
   RTM_DELADDR		= 21
   RTM_GETADDR		= 22
-  
+
   RTM_NEWROUTE		= 24
   RTM_DELROUTE		= 25
   RTM_GETROUTE		= 26
-  
+
   RTM_NEWNEIGH		= 28
   RTM_DELNEIGH		= 29
   RTM_GETNEIGH		= 30
-  
+
   RTM_NEWRULE		= 32
   RTM_DELRULE		= 33
   RTM_GETRULE		= 34
-  
+
   RTM_NEWQDISC		= 36
   RTM_DELQDISC		= 37
   RTM_GETQDISC		= 38
-  
+
   RTM_NEWTCLASS		= 40
   RTM_DELTCLASS		= 41
   RTM_GETTCLASS		= 42
-  
+
   RTM_NEWTFILTER	= 44
   RTM_DELTFILTER	= 45
   RTM_GETTFILTER	= 46
-  
+
   RTM_NEWACTION		= 48
   RTM_DELACTION		= 49
   RTM_GETACTION		= 50
-  
+
   RTM_NEWPREFIX		= 52
   RTM_GETMULTICAST	= 58
   RTM_GETANYCAST	= 62
@@ -113,15 +115,24 @@ module Linux
   RTM_NEWNEIGHTBL	= 64
   RTM_GETNEIGHTBL	= 66
   RTM_SETNEIGHTBL	= 67
-  
+
   RTM_NEWNDUSEROPT	= 68
 
   RTM_NEWADDRLABEL	= 72
   RTM_DELADDRLABEL	= 73
   RTM_GETADDRLABEL	= 74
-  
+
   RTM_GETDCB		= 78
   RTM_SETDCB		= 79
+
+
+  RTM_NEWNETCONF = 80
+  RTM_GETNETCONF = 82
+
+  RTM_NEWMDB = 84
+  RTM_DELMDB = 85
+  RTM_GETMDB = 86
+
 
   # RT#type
   RTN_UNSPEC		= 0
@@ -136,7 +147,7 @@ module Linux
   RTN_THROW		= 9
   RTN_NAT		= 10
   RTN_XRESOLVE		= 11
-  
+
   # RT#protocol
   RTPROT_UNSPEC		= 0
   RTPROT_REDIRECT	= 1
@@ -152,7 +163,8 @@ module Linux
   RTPROT_XORP		= 14
   RTPROT_NTK		= 15
   RTPROT_DHCP		= 16
-  
+  RTPROT_MROUTED = 17
+
   # RT#scope, IFAddr#scope
   RT_SCOPE_UNIVERSE	= 0
   RT_SCOPE_SITE		= 200
@@ -172,7 +184,7 @@ module Linux
   RT_TABLE_DEFAULT	= 253
   RT_TABLE_MAIN		= 254
   RT_TABLE_LOCAL	= 255
-  
+
   # routing message attributes
   RTA_UNSPEC		= 0
   RTA_DST		= 1
@@ -188,7 +200,13 @@ module Linux
   RTA_CACHEINFO		= 12
   RTA_TABLE		= 15
   RTA_MARK		= 16
-  
+  RTA_MFC_STATS = 17
+
+  # Keys for RT#nh_flags
+  RTNH_F_DEAD	    = 1    # Nexthop is dead (used by multipath)
+  RTNH_F_PERVASIVE	= 2  # Do recursive gateway lookup
+  RTNH_F_ONLINK    = 4   # Gateway is forced on link
+
   # Keys for RT#metrics
   RTAX_UNSPEC		= 0
   RTAX_LOCK		= 1
@@ -205,7 +223,8 @@ module Linux
   RTAX_FEATURES		= 12
   RTAX_RTO_MIN		= 13
   RTAX_INITRWND		= 14
-    
+  RTAX_QUICKACK   = 15
+
   # from linux/if_link.h
   IFLA_UNSPEC		= 0
   IFLA_ADDRESS		= 1
@@ -236,11 +255,26 @@ module Linux
   IFLA_AF_SPEC          = 26
   IFLA_GROUP            = 27
   IFLA_NET_NS_FD        = 28
-  IFLA_EXT_MASK         = 29 
+  IFLA_EXT_MASK   = 29
   IFLA_PROMISCUITY      = 30
   IFLA_NUM_TX_QUEUES    = 31
   IFLA_NUM_RX_QUEUES    = 32
   IFLA_CARRIER          = 33
+  IFLA_PHYS_PORT_ID  = 34
+
+  BRIDGE_MODE_UNSPEC = 0
+  BRIDGE_MODE_HAIRPIN = 1
+
+  IFLA_BRPORT_UNSPEC        = 0
+  IFLA_BRPORT_STATE         = 1 # Spanning tree state
+  IFLA_BRPORT_PRIORITY      = 2 # "             priority
+  IFLA_BRPORT_COST          = 3 # "             cost
+  IFLA_BRPORT_MODE          = 4 # mode (hairpin)
+  IFLA_BRPORT_GUARD         = 5 # bpdu guard
+  IFLA_BRPORT_PROTECT       = 6 # root port protection
+  IFLA_BRPORT_FAST_LEAVE    = 7 # multicast fast leave
+  IFLA_BRPORT_LEARNING      = 8 # mac learning
+  IFLA_BRPORT_UNICAST_FLOOD = 9 # flood unicast traffic
 
   IFLA_INFO_UNSPEC	= 0
   IFLA_INFO_KIND	= 1	# "vlan", "gre" etc
@@ -253,23 +287,28 @@ module Linux
   IFLA_VLAN_FLAGS	= 2	# struct ifla_vlan_flags
   IFLA_VLAN_EGRESS_QOS	= 3	# followed by instance of IFLA_VLAN_QOS_*
   IFLA_VLAN_INGRESS_QOS	= 4	# followed by instance of IFLA_VLAN_QOS_*
-  
+  IFLA_VLAN_PROTOCOL    = 5
+
   IFLA_VLAN_QOS_UNSPEC	= 0
-  IFLA_VLAN_QOS_MAPPING	= 1
-  
+  IFLA_VLAN_QOS_MAPPING = 1
+
   IFLA_MACVLAN_UNSPEC	= 0
   IFLA_MACVLAN_MODE	= 1
-  
+  IFLA_MACVLAN_FLAGS	= 2
+
   MACVLAN_MODE_PRIVATE	= 1
   MACVLAN_MODE_VEPA	= 2
   MACVLAN_MODE_BRIDGE	= 4
   MACVLAN_MODE_PASSTHRU	= 8
-  
+
+  # TODO: VXLAN and VF stuff is missing here
+
   # linux/if_vlan.h
   VLAN_FLAG_REORDER_HDR		= 0x1
   VLAN_FLAG_GVRP		= 0x2
   VLAN_FLAG_LOOSE_BINDING	= 0x4
-  
+  VLAN_FLAG_MVRP          = 0x8
+
   # from linux/if_addr.h
   IFA_UNSPEC		= 0
   IFA_ADDRESS		= 1
@@ -290,7 +329,7 @@ module Linux
   IFA_F_TENTATIVE	= 0x40
   IFA_F_PERMANENT	= 0x80
 
-  # from linux/if_arp.h
+  # from linux/if_arp.h - selected subset
   ARPHRD_NETROM		= 0
   ARPHRD_ETHER		= 1
   ARPHRD_EETHER		= 2
@@ -348,7 +387,7 @@ module Linux
   NF_INET_LOCAL_OUT	= 3
   NF_INET_POST_ROUTING	= 4
   NF_INET_NUMHOOKS	= 5
-    
+
   NFPROTO_UNSPEC	= 0
   NFPROTO_IPV4		= 2
   NFPROTO_ARP		= 3
@@ -360,7 +399,7 @@ module Linux
   IPQ_COPY_NONE		= 0
   IPQ_COPY_META		= 1
   IPQ_COPY_PACKET	= 2
-  
+
   IPQM_MODE		= 17
   IPQM_VERDICT		= 18
   IPQM_PACKET		= 19
@@ -369,22 +408,22 @@ module Linux
   # linux/netfilter_ipv4/ipt_ULOG.h
   ULOG_MAC_LEN		= 80
   ULOG_PREFIX_LEN	= 32
-  
+
   # linux/netfilter/x_tables.h
   XT_TABLE_MAXNAMELEN	= 32
-  
+
   XT_CONTINUE		= 0xffffffff
   XT_RETURN		= (-NF_REPEAT - 1)
 
   XT_INV_PROTO		= 0x40
-  
+
   # linux/netfilter_ipv4/ip_tables.h
   IPT_TABLE_MAXNAMELEN	= XT_TABLE_MAXNAMELEN
-  
+
   IPT_F_FRAG		= 0x01
   IPT_F_GOTO		= 0x02
   IPT_F_MASK		= 0x03
-  
+
   IPT_INV_VIA_IN	= 0x01
   IPT_INV_VIA_OUT	= 0x02
   IPT_INV_TOS		= 0x04
@@ -393,17 +432,17 @@ module Linux
   IPT_INV_FRAG		= 0x20
   IPT_INV_PROTO		= XT_INV_PROTO
   IPT_INV_MASK		= 0x7f
-  
+
   IPT_BASE_CTL			= 64
 
   IPT_SO_SET_REPLACE		= IPT_BASE_CTL
   IPT_SO_SET_ADD_COUNTERS	= IPT_BASE_CTL + 1
-  
+
   IPT_SO_GET_INFO		= IPT_BASE_CTL
   IPT_SO_GET_ENTRIES		= IPT_BASE_CTL + 1
   IPT_SO_GET_REVISION_MATCH	= IPT_BASE_CTL + 2
   IPT_SO_GET_REVISION_TARGET	= IPT_BASE_CTL + 3
-  
+
   IPT_CONTINUE			= XT_CONTINUE
   IPT_RETURN			= XT_RETURN
 end
