@@ -8,12 +8,12 @@ module Netlink
       def clear_cache
         # No cache
       end
-      
+
       def list(filter={}, &blk)
         @rtsocket.link.list(filter.merge(:kind=>"vlan"))
       end
       alias :each :list
-            
+
       # Higher-level API to manipulate VLAN interface.
       #    nl.vlans.add(
       #      :link=>"lo",
@@ -24,15 +24,15 @@ module Netlink
       def add(opt)
         @rtsocket.link.add(vlan_options(opt))
       end
-      
+
       def change(opt)
         @rtsocket.link.change(vlan_options(opt))
       end
-      
+
       def replace(opt)
         @rtsocket.link.replace(vlan_options(opt))
       end
-      
+
       # Delete vlan given :link and :vlan_id. If you want to delete
       # by :index then call link.delete instead.
       def delete(opt)
@@ -59,6 +59,7 @@ module Netlink
         end
         li.data.egress_qos = opt.delete(:egress_qos) if opt.has_key?(:egress_qos)
         li.data.ingress_qos = opt.delete(:ingress_qos) if opt.has_key?(:ingress_qos)
+        li.data.protocol = opt.delete(:protocol) if opt.has_key?(:protocol)
         opt
       end
     end
