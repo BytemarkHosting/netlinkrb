@@ -122,6 +122,7 @@ module Netlink
       :unpack => lambda { |str,obj| VlanFlags.parse(str) }
     rtattr :egress_qos, IFLA_VLAN_EGRESS_QOS
     rtattr :ingress_qos, IFLA_VLAN_INGRESS_QOS
+    rtattr :protocol, IFLA_VLAN_PROTOCOL, :ushort
   end
 
   module Route
