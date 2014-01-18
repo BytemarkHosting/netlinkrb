@@ -25,7 +25,8 @@ module Netlink
     # Check the sockaddr on a received message. Raises an error if the AF
     # is not AF_NETLINK or the PID is not 0 (this is important for security)
     def self.check_sockaddr(str)
-      af, pad, pid, groups = str.unpack(SOCKADDR_PACK)
+      # af, pad, pid, groups = str.unpack(SOCKADDR_PACK)
+      af, pid = str.unpack(SOCKADDR_PACK).values_at(0,2)
       raise "Bad AF #{af}!" if af != Socket::AF_NETLINK
       raise "Bad PID #{pid}!" if pid != 0
     end
@@ -135,8 +136,8 @@ module Netlink
     # (Compare: rtnl_talk in lib/libnetlink.c, with answer=NULL)
     def cmd(type, msg, flags=NLM_F_REQUEST, resp_type=NLMSG_ERROR, timeout=@timeout, sockaddr=SOCKADDR_DEFAULT)
       send_request(type, msg, flags|NLM_F_ACK, sockaddr)
-      receive_responses(true, timeout) do |type,msg|
-        return msg if type == resp_type
+      receive_responses(true, timeout) do |rtype,rmsg|
+        return rmsg if rtype == resp_type
         false
       end
     end
@@ -144,7 +145,8 @@ module Netlink
     # Discard all waiting messages
     def drain
       while select([@socket], nil, nil, 0)
-        mesg, sender, rflags, controls = @socket.recvmsg
+        # mesg, sender, rflags, controls = @socket.recvmsg
+        mesg = @socket.recvmsg.first
         raise EOFError unless mesg
       end
     end
@@ -209,7 +211,8 @@ module Netlink
     # kernel closes the socket.
     def recvmsg(timeout=@timeout)
       if select([@socket], nil, nil, timeout)
-        mesg, sender, rflags, controls = @socket.recvmsg
+        # mesg, sender, rflags, controls = @socket.recvmsg
+        mesg, sender = @socket.recvmsg.first(2)
         raise EOFError unless mesg
         sender = sender.to_sockaddr if sender.respond_to? :to_sockaddr
         NLSocket.check_sockaddr(sender)
