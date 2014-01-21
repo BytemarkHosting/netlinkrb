@@ -1,3 +1,9 @@
+ruby-linux-netlink (0.15-1+wheezy1) stable; urgency=low
+
+  * New upstream release.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 21 Jan 2014 10:01:20 +0000
+
 ruby-linux-netlink (0.14-1+wheezy1) stable; urgency=low
 
   * New upstream release.
