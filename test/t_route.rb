@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), 'test_helper')
+require File.expand_path( File.join(File.dirname(__FILE__), 'test_helper') )
 require 'linux/netlink/route'
 
 # Note: multiple sockets bound to the same PID seem to cause timeout problems.
