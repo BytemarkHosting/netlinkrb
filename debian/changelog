@@ -1,3 +1,9 @@
+linux-netlink-ruby (0.16-1+squeeze1) oldstable; urgency=low
+
+  * New upstream release.
+
+ -- Patrick J Cherry <patch@dynamo>  Tue, 26 Aug 2014 16:32:44 +0100
+
 linux-netlink-ruby (0.15-1+squeeze1) oldstable; urgency=low
 
   * New upstream release.

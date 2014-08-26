@@ -1,9 +1,5 @@
-require File.join(File.dirname(__FILE__), 'test_helper')
+require File.expand_path( File.join(File.dirname(__FILE__), 'test_helper') )
 require 'linux/netlink/route'
-
-# Note: multiple sockets bound to the same PID seem to cause timeout problems.
-# (Should we use different algorithm for generating the PID? PID + seq?)
-$ip ||= Linux::Netlink::Route::Socket.new
 
 #
 # Ruby 1.8.7 appears to lack the KeyError constant.
@@ -15,7 +11,7 @@ end
 class TestAddr < Test::Unit::TestCase
   context "With netlink route socket" do
     setup do
-      @ip = $ip
+      @ip =  Linux::Netlink::Route::Socket.new
       @ifname = nil
     end
 
@@ -25,10 +21,23 @@ class TestAddr < Test::Unit::TestCase
       rescue KeyError, IndexError
         # Do nothing
       end
+
+      @ip.close
     end
 
     test "Read link type" do
       assert_equal Linux::ARPHRD_LOOPBACK, @ip.link["lo"].type
+    end
+
+    test "Both sockets work if two are open at the same time" do
+      begin
+        @ip2 = Linux::Netlink::Route::Socket.new
+
+        assert_kind_of Enumerable, @ip.route.list
+        assert_kind_of Enumerable, @ip2.route.list
+      ensure
+        @ip2.close
+      end
     end
 
     def create_test_interface(ifname = "test_#{$$}")

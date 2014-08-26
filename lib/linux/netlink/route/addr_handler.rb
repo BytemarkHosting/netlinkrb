@@ -24,6 +24,10 @@ module Netlink
         :pack   => lambda { |val,obj| val.to_a.pack("L*") },
         :unpack => lambda { |str,obj| IFACacheInfo.new(*(str.unpack("L*"))) }
     rtattr :multicast, IFA_MULTICAST, :l3addr
+
+    # TODO: is there any difference between flags and ifa_flags? The latter only
+    # shows up on newer kernels
+    rtattr :ifa_flags, IFA_FLAGS, :uint
   end
 
   module Route

@@ -58,14 +58,16 @@ module Netlink
     #   :timeout => N (seconds, default to DEFAULT_TIMEOUT. Pass nil for no timeout)
     #   :junk_handler => lambda { ... } for unexpected packets
     def initialize(opt)
-      @socket ||= opt[:socket] || ::Socket.new(
+      @socket = opt[:socket] || ::Socket.new(
         Socket::AF_NETLINK,
         Socket::SOCK_DGRAM,
         opt[:protocol] || (raise "Missing :protocol")
       )
       @socket.bind(NLSocket.sockaddr(opt)) unless opt[:socket]
       @seq = opt[:seq] || Time.now.to_i
-      @pid = opt[:pid] || $$
+
+      @pid = @socket.getsockname.unpack(SOCKADDR_PACK)[2]
+
       @timeout = opt.has_key?(:timeout) ? opt[:timeout] : DEFAULT_TIMEOUT
       if opt.has_key?(:junk_handler)
         @junk_handler = opt[:junk_handler]
@@ -75,7 +77,7 @@ module Netlink
         }
       end
     end
-    
+
     # Close the Netlink socket
     def close
       @socket.close
@@ -85,7 +87,7 @@ module Netlink
     def next_seq
       @seq = (@seq + 1) & 0xffffffff
     end
-    
+
     # Add a header and send a single message over the socket.
     #   type:: the message type code
     #   msg:: the message to send (without header)
@@ -203,7 +205,7 @@ module Netlink
         end
       end
     end
-    
+
     # Receive one datagram from kernel. Validates the sender, and returns
     # the raw binary message. Raises an exception on timeout or if the
     # kernel closes the socket.
