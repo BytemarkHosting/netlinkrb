@@ -187,7 +187,7 @@ module Netlink
             warn "Duplicate attribute #{name} (#{code}): #{attrs[name].inspect} -> #{val.inspect}" if attrs[name]
             attrs[name] = val
           else
-            warn "Unknown attribute #{code}, in class #{self}, value #{val.inspect}"
+            warn "Unknown attribute #{code}, in class #{self}, value #{val.inspect}" if $DEBUG
             attrs[code] = val
           end
         end
