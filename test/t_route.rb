@@ -40,6 +40,28 @@ class TestAddr < Test::Unit::TestCase
       end
     end
 
+    test "massively parallel IP address addition" do
+      @ifname = create_test_interface
+
+      ips = (10..20).map {|y| (1..254).map {|z| "10.100.#{y}.#{z}" } }.flatten.compact
+
+      threads = ips.map {|ip|
+        Thread.new {
+          Linux::Netlink::Route::Socket.new.addr.add(
+            :index => @ifname,
+            :local => ip,
+            :prefixlen => 8
+          )
+        }
+      }
+
+      threads.map(&:join)
+      created = @ip.addr.list(:index => @ifname, :family => Socket::AF_INET).
+        map {|ifaddr| ifaddr.address.to_s }
+
+      ips.each {|ip| assert created.include?( ip ), "#{ip} was not created" }
+    end
+
     def create_test_interface(ifname = "test_#{$$}")
       begin
         @ip.link.add(
