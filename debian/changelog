@@ -1,3 +1,9 @@
+ruby-linux-netlink (0.16-1+jessie1) stable; urgency=medium
+
+  * Repackaged for jessie
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Wed, 01 Apr 2015 17:39:44 +0100
+
 ruby-linux-netlink (0.16-1+wheezy1) stable; urgency=medium
 
   * New upstream release.
