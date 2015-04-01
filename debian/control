@@ -1,0 +1,18 @@
+Source: ruby-linux-netlink
+Maintainer: Matthew Bloch <matthew@bytemark.co.uk>
+Uploaders: Patrick J Cherry <patrick@bytemark.co.uk>
+Section: ruby
+Priority: optional
+Build-Depends:  debhelper (>= 7), gem2deb, rake, ruby-ffi
+Standards-Version: 3.8.0
+XS-Ruby-Versions: all 
+
+Package: ruby-linux-netlink
+Architecture: any
+Depends: ruby | ruby-interpreter, ruby-ffi, ${misc:Depends}
+Provides: liblinux-netlink-ruby1.8, liblinux-netlink-ruby1.9.1
+XB-Ruby-Versions: ${ruby:Versions}
+Description: Netlink socket library for Ruby
+ This library provides an API for using a Linux Netlink socket, for doing
+ things like manipulating IP interfaces and routes programmatically, and
+ capturing packets from ULOG.
