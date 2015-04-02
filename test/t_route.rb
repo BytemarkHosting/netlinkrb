@@ -43,6 +43,9 @@ class TestAddr < Test::Unit::TestCase
     test "massively parallel IP address addition" do
       @ifname = create_test_interface
       return if @ifname.nil?
+      
+      link = @ip.link.list.find{|x| x.ifname == @ifname} 
+      return if link.nil?
 
       ips = (10..20).map {|y| (1..254).map {|z| "10.100.#{y}.#{z}" } }.flatten.compact
 
@@ -57,6 +60,7 @@ class TestAddr < Test::Unit::TestCase
       }
 
       threads.map{|t| t.join }
+
       created = @ip.addr.list(:index => @ifname, :family => Socket::AF_INET).
         map {|ifaddr| ifaddr.address.to_s }
 
