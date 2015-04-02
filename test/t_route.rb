@@ -47,7 +47,7 @@ class TestAddr < Test::Unit::TestCase
       link = @ip.link.list.find{|x| x.ifname == @ifname} 
       return if link.nil?
 
-      ips = (10..20).map {|y| (1..254).map {|z| "10.100.#{y}.#{z}" } }.flatten.compact
+      ips = (10..13).map {|y| (1..254).map {|z| "10.100.#{y}.#{z}" } }.flatten.compact
 
       threads = ips.map {|ip|
         Thread.new {
