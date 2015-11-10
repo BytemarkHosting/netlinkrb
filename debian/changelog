@@ -1,8 +1,8 @@
-ruby-linux-netlink (0.17-1+jessie1) testing; urgency=medium
+ruby-linux-netlink (0.17-1+stretch1) testing; urgency=medium
 
-  * New upstream release
+  * Repackaged for stretch.
 
- -- Patrick J Cherry <patrick@bytemark.co.uk>  Wed, 01 Apr 2015 22:51:34 +0100
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 10 Nov 2015 13:39:37 +0000
 
 ruby-linux-netlink (0.16-1+jessie1) testing; urgency=medium
 
