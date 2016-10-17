@@ -1,3 +1,13 @@
+ruby-linux-netlink (0.18-1+jessie1) stable; urgency=medium
+
+  * Fixed new massive IP test thing to work with ruby1.8 and also non-root users
+  * Make sure link exists before proceeding with test
+  * Scaled back the massive allocation of IPs from 11 /24s to 4.
+  * Updated linux header constants
+  * Updated to 0.18
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Mon, 17 Oct 2016 13:09:35 +0100
+
 ruby-linux-netlink (0.17-1+jessie1) testing; urgency=medium
 
   * New upstream release
