@@ -12,7 +12,7 @@ package:jessie: &package
     - update-changelog
     - install-dependencies
     - rm -fv perp-build-deps*.deb .gitlab-ci.yml ../*.{deb,dsc,build,changes,tar.*}
-    - gbp buildpackage --git-ignore-new --git-ignore-branch -us -uc
+    - gbp buildpackage --git-ignore-new --git-ignore-branch --git-upstream-tag=%(s) --git-upstream-branch=master -us -uc
     - save-artifacts
   artifacts:
     paths:
