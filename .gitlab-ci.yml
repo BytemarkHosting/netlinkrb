@@ -8,7 +8,7 @@ package:jessie: &package
   variables:
     DISTRO: jessie
   script:
-    - git checkout -b debian/$DISTRO
+    - git checkout debian/$DISTRO
     - update-changelog
     - install-dependencies
     - rm -fv perp-build-deps*.deb .gitlab-ci.yml ../*.{deb,dsc,build,changes,tar.*}
