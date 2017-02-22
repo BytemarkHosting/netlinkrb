@@ -9,6 +9,7 @@ package:jessie: &package
   variables:
     DISTRO: jessie
   script:
+    - git checkout master
     - export VERSION=$(git tag --contains master --merged master)
     - git archive -v --format tgz -o ../ruby-linux-netlink_$VERSION.orig.tar.gz master
     - git checkout debian/$DISTRO
