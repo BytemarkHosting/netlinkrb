@@ -4,16 +4,13 @@ stages:
  
 package:jessie: &package
   stage: package
-  image: $CI_REGISTRY/docker-images/layers:$DISTRO-deb
+  tags:
+    - shell
   variables:
     DISTRO: jessie
   script:
     - git checkout debian/$DISTRO
-    - update-changelog
-    - install-dependencies
-    - rm -fv perp-build-deps*.deb .gitlab-ci.yml ../*.{deb,dsc,build,changes,tar.*}
-    - gbp buildpackage --git-ignore-new --git-ignore-branch --git-upstream-tag=%(s) --git-upstream-branch=master -us -uc
-    - save-artifacts
+    - sautobuild $PWD
   artifacts:
     paths:
       - pkg/
