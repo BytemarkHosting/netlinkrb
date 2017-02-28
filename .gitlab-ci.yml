@@ -9,7 +9,7 @@ package:jessie: &package
   variables:
     DISTRO: jessie
   script:
-    - sautobuild -d $DISTRO -- --debuild-flags=-b $PWD
+    - sautobuild -d $DISTRO -- --debbuildopts=-b $PWD
     - mkdir -p pkg/$DISTRO
     - mv -v ../*.{dsc,build,buildinfo,changes,tar.*} pkg/$DISTRO 2>/dev/null || true
     - mv -v ../*.deb pkg/$DISTRO
