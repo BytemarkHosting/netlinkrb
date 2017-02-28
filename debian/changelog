@@ -1,3 +1,10 @@
+ruby-linux-netlink (0.18-2) stable; urgency=medium
+
+  * This package is now architecture independent.
+  * The source format has been removed in favour of using dh --with quilt.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 28 Feb 2017 16:43:43 +0000
+
 ruby-linux-netlink (0.18-1+jessie1) stable; urgency=medium
 
   * Fixed new massive IP test thing to work with ruby1.8 and also non-root users
