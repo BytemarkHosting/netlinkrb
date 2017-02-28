@@ -23,6 +23,11 @@ package:stretch:
   variables:
     DISTRO: stretch
 
+package:wheezy:
+  <<: *package
+  variables:
+    DISTRO: wheezy
+
 publish:
   stage: publish
   tags: 
