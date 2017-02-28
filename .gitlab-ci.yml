@@ -3,16 +3,12 @@ stages:
   - publish
  
 package:jessie: &package
+  image: $CI_REGISTRY/docker-images/layers:$DISTRO-deb
   stage: package
-  tags:
-    - shell
   variables:
     DISTRO: jessie
   script:
-    - sautobuild -d $DISTRO -- --debbuildopts=-b $PWD
-    - mkdir -p pkg/$DISTRO
-    - mv -v ../*.{dsc,build,buildinfo,changes,tar.*} pkg/$DISTRO 2>/dev/null || true
-    - mv -v ../*.deb pkg/$DISTRO
+    - package
   artifacts:
     paths:
       - pkg/
