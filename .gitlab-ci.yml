@@ -24,6 +24,7 @@ package:wheezy:
     DISTRO: wheezy
 
 publish:
+  image: $CI_REGISTRY/docker-images/layers:jessie-publish
   stage: publish
   script:
     - publish
