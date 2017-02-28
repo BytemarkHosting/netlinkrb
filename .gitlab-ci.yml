@@ -9,11 +9,10 @@ package:jessie: &package
   variables:
     DISTRO: jessie
   script:
-    - git checkout master
-    - export VERSION=$(git tag --contains master --merged master)
-    - git archive -v --format tgz -o ../ruby-linux-netlink_$VERSION.orig.tar.gz master
-    - git checkout debian/$DISTRO
-    - sautobuild -d $DISTRO $PWD
+    - sautobuild -d $DISTRO -- --debuild-flags=-b $PWD
+    - mkdir -p pkg/$DISTRO
+    - mv -v ../*.{dsc,build,buildinfo,changes,tar.*} pkg/$DISTRO 2>/dev/null || true
+    - mv -v ../*.deb pkg/$DISTRO
   artifacts:
     paths:
       - pkg/
@@ -30,8 +29,6 @@ package:wheezy:
 
 publish:
   stage: publish
-  tags: 
-    - shell
   script:
     - publish
 
