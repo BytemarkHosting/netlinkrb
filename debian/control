@@ -3,7 +3,7 @@ Maintainer: Matthew Bloch <matthew@bytemark.co.uk>
 Uploaders: Patrick J Cherry <patrick@bytemark.co.uk>
 Section: ruby
 Priority: optional
-Build-Depends:  debhelper (>= 7), gem2deb, rake, ruby-ffi
+Build-Depends:  debhelper (>= 7), gem2deb, rake, ruby-ffi, quilt
 Standards-Version: 3.8.0
 XS-Ruby-Versions: all 
 
