@@ -1,6 +1,18 @@
 stages:
   - package
   - publish
+
+package:jessie:gem:
+  image: $CI_REGISTRY/docker-images/layers:$DISTRO-ruby
+  stage: package
+  variables:
+    DISTRO: jessie
+    GEMFILE: netlinkrb.gemspec
+  script:
+    - package
+  artifacts:
+    paths:
+    - pkg/
  
 package:jessie: &package
   image: $CI_REGISTRY/docker-images/layers:$DISTRO-deb
