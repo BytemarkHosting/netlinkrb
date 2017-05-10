@@ -1,3 +1,10 @@
+ruby-linux-netlink (0.19-1) stable; urgency=medium
+
+  * The size of size_t is now calculated from the size of an unsigned long
+    int, instead of calling gcc.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Wed, 10 May 2017 15:24:42 +0100
+
 ruby-linux-netlink (0.18-2) stable; urgency=medium
 
   * This package is now architecture independent.
