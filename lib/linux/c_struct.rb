@@ -83,7 +83,7 @@ class CStruct
     require 'linux/c_struct_sizeof_size_t.rb'
   rescue LoadError
     warn "netlinkrb: Assuming size_t is a long unsigned int." if $DEBUG
-    SIZEOF_SIZE_T = [0].pack("L_").size
+    SIZEOF_SIZE_T = [0].pack("L_").bytesize
   end
 
   define_type :size_t,
