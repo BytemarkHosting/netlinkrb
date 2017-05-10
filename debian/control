@@ -8,7 +8,7 @@ Standards-Version: 3.8.0
 XS-Ruby-Versions: all 
 
 Package: ruby-linux-netlink
-Architecture: all
+Architecture: any
 Depends: ruby | ruby-interpreter, ruby-ffi, ${misc:Depends}
 Provides: liblinux-netlink-ruby1.8, liblinux-netlink-ruby1.9.1
 XB-Ruby-Versions: ${ruby:Versions}
