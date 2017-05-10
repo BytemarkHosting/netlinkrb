@@ -32,12 +32,12 @@ class CStruct
   EMPTY_ARRAY  = [].freeze #:nodoc:
 
   TYPE_INFO = {} #:nodoc
-  
+
   # The size of the structure (in bytes)
   def self.bytesize
     @bytesize
   end
-  
+
   # Define a new type for use with 'field'. You supply the
   # symbolic name for the type, and a set of options.
   #    :pattern => "str"    # format string for Array#pack / String#unpack
@@ -51,7 +51,7 @@ class CStruct
   def self.define_type(name, opt)
     TYPE_INFO[name] = opt
   end
-  
+
   # Return a type info hash given a type id. Raises IndexError if not found.
   def self.find_type(type)
     case type
@@ -61,7 +61,7 @@ class CStruct
       TYPE_INFO.fetch(type)
     end
   end
-      
+
   define_type :uchar,   :pattern => "C"
   define_type :uint16,  :pattern => "S",  :align => true
   define_type :uint32,  :pattern => "L",  :align => true
@@ -78,12 +78,12 @@ class CStruct
   define_type :long,    :pattern => "l_", :align => true
   define_type :ns,      :pattern => "n",  :align => true
   define_type :nl,      :pattern => "N",  :align => true
-  
+
   begin
     require 'linux/c_struct_sizeof_size_t.rb'
   rescue LoadError
-    warn "Falling back to gcc to determine sizeof size_t." if $VERBOSE
-    SIZEOF_SIZE_T = Integer(`echo __SIZEOF_SIZE_T__ | gcc -E -P -`) rescue 1.size
+    warn "netlinkrb: Assuming size_t is a long unsigned int." if $DEBUG
+    SIZEOF_SIZE_T = [0].pack("L_").size
   end
 
   define_type :size_t,
@@ -108,20 +108,20 @@ class CStruct
       h.each { |k,v| self[k] = v } if h
     end
   end
-  
+
   # This hook is called after unpacking from binary, and can be used
   # for fixing up the data
   def after_parse
   end
-  
+
   def to_hash
     @attrs
   end
-  
+
   def each(&blk)
     @attrs.each(&blk)
   end
-  
+
   # Set a field by name. Currently can use either symbol or string as key.
   def []=(k,v)
     send "#{k}=", v
@@ -131,7 +131,7 @@ class CStruct
   def [](k)
     @attrs[k]
   end
-  
+
   def self.inherited(subclass) #:nodoc:
     subclass.const_set(:FIELDS, [])
     subclass.const_set(:FORMAT, "")
@@ -175,7 +175,7 @@ class CStruct
       @bytesize += count
     end
   end
-  
+
   # Returns the packed binary representation of this structure
   def to_str
     self.class::FIELDS.map { |key| self[key] || self.class::DEFAULTS[key] }.pack(self.class::FORMAT)
@@ -184,7 +184,7 @@ class CStruct
   def inspect
     "#<#{self.class} #{@attrs.inspect}>"
   end
-  
+
   # Convert a binary representation of this structure into an object instance.
   # If a block is given, the object is yielded to that block. Finally the
   # after_parse hook is called.
