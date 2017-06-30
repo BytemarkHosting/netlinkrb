@@ -45,9 +45,9 @@ publish:rubygems:
   image: $CI_REGISTRY/docker-images/layers:$DISTRO-ruby
   stage: publish
   script:
-    - mkdir -p ~/.gem
-    - echo -e "---\n:rubygems_api_key: '$RUBYGEMS_API_KEY'\n"  > ~/.gem/credentials
-    - gem push pkg/jessie/gems/netlinkrb-*.gem
+  - mkdir -p ~/.gem
+  - 'echo -e "---\n:rubygems_api_key: ''$RUBYGEMS_API_KEY''\n"  > ~/.gem/credentials'
+  - gem push pkg/jessie/gems/netlinkrb-*.gem
   only:
-    - master
-    - publish-to-rubygems
+  - master
+  - publish-to-rubygems
