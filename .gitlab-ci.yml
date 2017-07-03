@@ -9,6 +9,8 @@ package:jessie:gem:
     DISTRO: jessie
     GEMFILE: netlinkrb.gemspec
   script:
+    - sysctl -a | grep ipv6
+    - ip -6 a
     - package
   artifacts:
     paths:
